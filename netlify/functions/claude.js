@@ -13,7 +13,7 @@ exports.handler = async function(event, context) {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -21,10 +21,15 @@ exports.handler = async function(event, context) {
         'x-api-key': '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',
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1000,
+        system: body.system,
+        messages: body.messages
+      })
     });
 
-    const data = await response.json();
+    const text = await response.text();
     
     return {
       statusCode: response.status,
@@ -32,7 +37,7 @@ exports.handler = async function(event, context) {
         'Access-Control-Allow-Origin': '*', 
         'Content-Type': 'application/json' 
       },
-      body: JSON.stringify(data)
+      body: text
     };
   } catch (error) {
     return {
