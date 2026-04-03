@@ -10,7 +10,10 @@ exports.handler = async function(event, context) {
       body: ''
     };
   }
+
   try {
+    const body = JSON.parse(event.body || '{}');
+    
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -18,12 +21,17 @@ exports.handler = async function(event, context) {
         'x-api-key': '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',
         'anthropic-version': '2023-06-01'
       },
-      body: event.body
+      body: JSON.stringify(body)
     });
+
     const data = await response.json();
+    
     return {
-      statusCode: 200,
-      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+      statusCode: response.status,
+      headers: { 
+        'Access-Control-Allow-Origin': '*', 
+        'Content-Type': 'application/json' 
+      },
       body: JSON.stringify(data)
     };
   } catch (error) {
