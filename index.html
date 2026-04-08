@@ -1284,7 +1284,6 @@ body {
 // =====================
 const ADMIN_PWD = 'Vitalya@Admin2025';
 const TECH_PWD  = 'Vitalya2025';
-const ANTHROPIC_KEY = 's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';
 const CLOUDINARY_CLOUD = 'dtd2gudlg';
 const CLOUDINARY_PRESET = 'vitalya_uploads';
 
@@ -2380,14 +2379,9 @@ async function sendMsg() {
     const messagesToSend = chatHistory.slice(-14);
     console.log('Sending messages:', JSON.stringify(messagesToSend));
     
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('/api/claude', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
@@ -2539,14 +2533,9 @@ async function handleDocUpload(files) {
 
 async function extractPDF(name, base64) {
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('/api/claude', {
       method:'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model:'claude-haiku-4-5-20251001', max_tokens:800,
         messages:[{ role:'user', content:[
