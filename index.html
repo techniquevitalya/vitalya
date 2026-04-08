@@ -1761,13 +1761,48 @@ let currentUser = null;
 // =====================
 // USERS MANAGEMENT
 // =====================
+let _usersCache = null;
+
 function getUsers() {
+  if (_usersCache) return _usersCache;
   const saved = localStorage.getItem(USERS_KEY);
-  if (saved) return JSON.parse(saved);
-  // Default: one tech account for backward compat
+  if (saved) { _usersCache = JSON.parse(saved); return _usersCache; }
   return [{ id: 'tech-default', name: 'Technicien', username: 'tech', password: 'Vitalya2025', createdAt: '2025-01-01', active: true }];
 }
-function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+
+function saveUsers(users) {
+  _usersCache = users;
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  fbSaveUsers(users);
+}
+
+async function fbSaveUsers(users) {
+  if (!window._fbReady) return;
+  try {
+    const r = window._fbRef(window._fbDb, 'vitalya/users');
+    await window._fbSet(r, users);
+  } catch(e) { console.error('Firebase users save error:', e); }
+}
+
+async function fbLoadUsers() {
+  if (!window._fbReady) return getUsers();
+  try {
+    const r = window._fbRef(window._fbDb, 'vitalya/users');
+    const snap = await window._fbGet(r);
+    if (snap.exists()) {
+      _usersCache = snap.val();
+      localStorage.setItem(USERS_KEY, JSON.stringify(_usersCache));
+    } else {
+      // First time — migrate local users to Firebase
+      const local = getUsers();
+      _usersCache = local;
+      await fbSaveUsers(local);
+    }
+  } catch(e) {
+    console.error('Firebase users load error:', e);
+  }
+  return getUsers();
+}
 
 // Per-user storage keys
 function userHistKey(uid) { return `vitalya_hist_${uid}`; }
@@ -1779,11 +1814,20 @@ function userFavKey(uid)  { return `vitalya_fav_${uid}`; }
 document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPwd').focus(); });
 document.getElementById('loginPwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
-function doLogin() {
+async function doLogin() {
   const username = document.getElementById('loginUser').value.trim().toLowerCase();
   const pwd = document.getElementById('loginPwd').value.trim();
   const err = document.getElementById('loginError');
   err.style.display = 'none';
+
+  // Show loading
+  const btn = document.querySelector('.btn-login');
+  if (btn) { btn.textContent = '⏳ Connexion...'; btn.disabled = true; }
+
+  // Load latest users from Firebase first
+  await fbLoadUsers();
+
+  if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
 
   // Admin check
   if ((username === 'admin' || username === '') && pwd === ADMIN_PWD) {
@@ -4277,8 +4321,8 @@ function showToast(msg, err=false) {
 
 // Init — load Firebase data then render
 async function initApp() {
-  // Load shared data from Firebase
-  await Promise.all([fbLoadPhotos(), fbLoadCats()]);
+  // Load all shared data from Firebase
+  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers()]);
   renderAdminDocs();
   renderAdminStats();
   renderIaHistory();
