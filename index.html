@@ -19,6 +19,7 @@ window.addEventListener('resize', setVh);
 window.addEventListener('orientationchange', () => setTimeout(setVh, 300));
 </script>
 <style>
+/* ==================== THEME CLAIR/SOMBRE ==================== */
 :root {
   --primary: #0A2463;
   --accent: #E84855;
@@ -29,8 +30,178 @@ window.addEventListener('orientationchange', () => setTimeout(setVh, 300));
   --border: rgba(255,255,255,0.1);
   --text: rgba(255,255,255,0.92);
   --muted: rgba(255,255,255,0.4);
+  --topbar-bg: rgba(6,15,30,0.95);
+  --tabbar-bg: rgba(6,15,30,0.98);
+  --input-bg: rgba(255,255,255,0.06);
+  --msg-ai-bg: rgba(255,255,255,0.06);
   --safe: height env(safe-area-inset-bottom, 0px);
 }
+
+body.light-mode {
+  --bg: #F0F4F8;
+  --card: rgba(0,0,0,0.04);
+  --border: rgba(0,0,0,0.1);
+  --text: rgba(0,0,0,0.88);
+  --muted: rgba(0,0,0,0.4);
+  --topbar-bg: rgba(255,255,255,0.97);
+  --tabbar-bg: rgba(255,255,255,0.98);
+  --input-bg: rgba(0,0,0,0.05);
+  --msg-ai-bg: rgba(0,0,0,0.05);
+}
+
+body.light-mode html,
+body.light-mode { background: var(--bg); }
+body.light-mode .bub.ai { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1); color: var(--text); }
+body.light-mode .bub.usr { background: linear-gradient(135deg, #0A2463, #1A3A8F); color: #fff; }
+body.light-mode .topbar { background: var(--topbar-bg); border-bottom-color: var(--border); }
+body.light-mode .tabbar { background: var(--tabbar-bg); border-top-color: var(--border); }
+body.light-mode .admin-topbar { background: var(--topbar-bg); }
+body.light-mode .chat-input-wrap { background: var(--tabbar-bg); }
+body.light-mode .chat-row { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.12); }
+body.light-mode #msgInput { color: var(--text); }
+body.light-mode .admin-section { background: rgba(0,0,0,0.03); }
+body.light-mode .fiche-section { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.08); }
+body.light-mode .cat-card { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); }
+body.light-mode .calc-select, body.light-mode .calc-vol-input { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.15); color: var(--text); }
+body.light-mode .search-bar { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.12); }
+body.light-mode #searchInput { color: var(--text); }
+body.light-mode .search-result-card { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.08); }
+body.light-mode .qchip { background: rgba(59,206,172,0.12); }
+body.light-mode .login-card { background: rgba(255,255,255,0.8); }
+body.light-mode .fiche-table td { border-color: rgba(0,0,0,0.06); }
+body.light-mode .fiche-row { border-color: rgba(0,0,0,0.06); }
+body.light-mode .topbar-logo { background: linear-gradient(135deg, #0A2463, var(--cyan)); -webkit-background-clip: text; }
+
+/* Toggle bouton */
+.theme-toggle {
+  width: 34px; height: 34px;
+  background: rgba(255,255,255,0.1);
+  border: none; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px;
+  transition: all 0.2s; flex-shrink: 0;
+}
+body.light-mode .theme-toggle { background: rgba(0,0,0,0.08); }
+.theme-toggle:active { transform: scale(0.9); }
+
+/* ==================== TIMER TEMPS DE CONTACT ==================== */
+.timer-box {
+  display: none;
+  background: linear-gradient(135deg, rgba(59,206,172,0.12), rgba(10,36,99,0.15));
+  border: 1.5px solid rgba(59,206,172,0.4);
+  border-radius: 16px; padding: 16px 18px;
+  margin-top: 14px; animation: msgIn 0.3s ease;
+}
+.timer-box.show { display: block; }
+.timer-box.warning { border-color: rgba(255,179,71,0.6); background: rgba(255,179,71,0.1); }
+.timer-box.done { border-color: rgba(46,213,115,0.6); background: rgba(46,213,115,0.1); }
+.timer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.timer-label { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--cyan); }
+.timer-box.warning .timer-label { color: #FFB347; }
+.timer-box.done .timer-label { color: #2ED573; }
+.timer-display {
+  font-size: 52px; font-weight: 800; text-align: center;
+  color: var(--cyan); letter-spacing: -2px;
+  font-variant-numeric: tabular-nums;
+  margin: 8px 0;
+}
+.timer-box.warning .timer-display { color: #FFB347; }
+.timer-box.done .timer-display { color: #2ED573; }
+.timer-product { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 12px; }
+.timer-btns { display: flex; gap: 8px; }
+.timer-btn {
+  flex: 1; padding: 11px; border: none; border-radius: 12px;
+  font-size: 14px; font-weight: 700; font-family: 'Outfit', sans-serif;
+  cursor: pointer; transition: all 0.2s;
+}
+.timer-btn.start { background: var(--cyan); color: var(--primary); }
+.timer-btn.stop { background: rgba(232,72,85,0.2); color: #FF6B75; border: 1px solid rgba(232,72,85,0.3); }
+.timer-btn.reset { background: rgba(255,255,255,0.08); color: var(--muted); }
+.timer-btn:active { transform: scale(0.96); }
+.timer-progress {
+  height: 4px; background: rgba(255,255,255,0.1);
+  border-radius: 4px; margin-bottom: 12px; overflow: hidden;
+}
+.timer-progress-fill {
+  height: 100%; border-radius: 4px;
+  background: var(--cyan); width: 100%;
+  transition: width 1s linear, background 0.3s;
+}
+
+/* ==================== COMPARATEUR ==================== */
+.comp-section {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 16px 18px;
+  margin-top: 14px;
+}
+.comp-title {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; color: var(--cyan);
+  margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.comp-selects { display: flex; gap: 8px; margin-bottom: 14px; }
+.comp-selects select {
+  flex: 1; background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 12px; padding: 11px 12px;
+  font-size: 13px; color: var(--text);
+  font-family: 'Outfit', sans-serif; outline: none;
+  -webkit-appearance: none; appearance: none;
+}
+body.light-mode .comp-selects select { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.15); }
+.btn-compare {
+  width: 100%; background: linear-gradient(135deg, #6C63FF, #4A43CC);
+  border: none; border-radius: 12px; padding: 13px;
+  font-size: 15px; font-weight: 700; color: #fff;
+  font-family: 'Outfit', sans-serif; cursor: pointer; margin-bottom: 14px;
+}
+.btn-compare:active { transform: scale(0.97); }
+.comp-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.comp-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  min-width: 280px;
+}
+.comp-table th {
+  padding: 10px 12px; text-align: center;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+}
+.comp-table th:first-child { text-align: left; color: var(--muted); font-size: 11px; }
+.comp-table th.prod-a { background: rgba(59,206,172,0.12); color: var(--cyan); border-radius: 8px 8px 0 0; }
+.comp-table th.prod-b { background: rgba(108,99,255,0.12); color: #6C63FF; border-radius: 8px 8px 0 0; }
+.comp-table td {
+  padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
+  text-align: center; vertical-align: top;
+}
+body.light-mode .comp-table td { border-color: rgba(0,0,0,0.06); }
+.comp-table td:first-child { text-align: left; color: var(--muted); font-size: 12px; font-weight: 600; }
+.comp-table td.val-a { background: rgba(59,206,172,0.05); }
+.comp-table td.val-b { background: rgba(108,99,255,0.05); }
+.comp-badge {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px; margin-top: 2px;
+}
+.comp-badge.green { background: rgba(46,213,115,0.2); color: #2ED573; }
+.comp-badge.red { background: rgba(232,72,85,0.2); color: #FF6B75; }
+.comp-badge.blue { background: rgba(59,206,172,0.2); color: var(--cyan); }
+
+/* ==================== RECHERCHE GLOBALE AMÉLIORÉE ==================== */
+.search-scope-row {
+  display: flex; gap: 6px; padding: 8px 14px 6px;
+  overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
+}
+.search-scope-row::-webkit-scrollbar { display: none; }
+.scope-chip {
+  flex-shrink: 0; background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px; padding: 4px 12px;
+  font-size: 11px; color: var(--muted);
+  cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 700;
+  transition: all 0.2s; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.scope-chip.on { background: rgba(59,206,172,0.15); border-color: rgba(59,206,172,0.4); color: var(--cyan); }
+body.light-mode .scope-chip { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1); }
+
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -855,6 +1026,7 @@ body {
       <div class="topbar-sub">Assistant Technique</div>
     </div>
     <div class="topbar-right">
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Mode clair/sombre">🌙</button>
       <button class="topbar-btn" onclick="openPanel('histPanel')" title="Historique">🕐</button>
       <button class="topbar-btn" onclick="openPanel('favPanel')" title="Favoris">⭐</button>
       <button class="topbar-btn" onclick="exportConversation()" title="Exporter">📤</button>
@@ -1184,12 +1356,68 @@ body {
           <div class="calc-epi" id="calcFixedEpi" style="display:none;"></div>
         </div>
 
+        <!-- TIMER TEMPS DE CONTACT -->
+        <div class="timer-box" id="timerBox">
+          <div class="timer-header">
+            <span class="timer-label" id="timerLabel">⏱️ Temps de contact</span>
+            <span style="font-size:11px;color:var(--muted)" id="timerEpiLabel"></span>
+          </div>
+          <div class="timer-progress"><div class="timer-progress-fill" id="timerFill"></div></div>
+          <div class="timer-display" id="timerDisplay">00:00</div>
+          <div class="timer-product" id="timerProduct"></div>
+          <div class="timer-btns">
+            <button class="timer-btn start" id="timerStartBtn" onclick="timerToggle()">▶ Démarrer</button>
+            <button class="timer-btn reset" onclick="timerReset()">↺ Reset</button>
+          </div>
+        </div>
+
+        <!-- COMPARATEUR -->
+        <div class="comp-section" id="compSection">
+          <div class="comp-title">⚖️ Comparer 2 produits</div>
+          <div class="comp-selects">
+            <select id="compA">
+              <option value="">Produit A</option>
+            </select>
+            <select id="compB">
+              <option value="">Produit B</option>
+            </select>
+          </div>
+          <button class="btn-compare" onclick="doCompare()">⚖️ Comparer</button>
+          <div id="compResult"></div>
+        </div>
+
+      </div>
+    </div><!-- fin calcPage -->
+
+    <!-- RECHERCHE TAB -->
+    <div class="tab-page" id="searchPage">
+      <div class="search-bar-wrap">
+        <div class="search-bar">
+          <span style="font-size:16px;color:var(--muted);flex-shrink:0;">🔍</span>
+          <input type="text" id="searchInput" placeholder="Produit, dosage, référence, protocole..." autocomplete="off" oninput="doSearch(this.value)">
+          <button id="searchClear" onclick="clearSearch()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;display:none;padding:0;">✕</button>
+        </div>
+      </div>
+      <div class="search-scope-row">
+        <button class="scope-chip on" data-scope="all" onclick="setScope('all',this)">Tout</button>
+        <button class="scope-chip" data-scope="dosage" onclick="setScope('dosage',this)">💧 Dosages</button>
+        <button class="scope-chip" data-scope="doseur" onclick="setScope('doseur',this)">⚙️ Doseurs</button>
+        <button class="scope-chip" data-scope="ref" onclick="setScope('ref',this)">📦 Références</button>
+        <button class="scope-chip" data-scope="securite" onclick="setScope('securite',this)">⚠️ Sécurité</button>
+        <button class="scope-chip" data-scope="lv" onclick="setScope('lv',this)">🍽️ LV Machine</button>
+      </div>
+      <div id="searchResults" style="flex:1;overflow-y:auto;padding:12px 14px;-webkit-overflow-scrolling:touch;">
+        <div class="search-empty">
+          <div style="font-size:44px;margin-bottom:14px;">🔍</div>
+          <strong>Recherche globale</strong><br>
+          <span style="color:var(--muted);font-size:13px;">Tapez un produit, un dosage,<br>une référence ou un protocole</span>
+        </div>
       </div>
     </div>
 
   </div><!-- end tab-content -->
 
-  <!-- Tab bar -->
+  <!-- Tab bar — 4 onglets -->
   <div class="tabbar">
     <div class="tab active" id="tab-chat" onclick="switchTab('chat')">
       <div class="tab-indicator"></div>
@@ -1200,6 +1428,11 @@ body {
       <div class="tab-indicator"></div>
       <div class="tab-icon">📋</div>
       <div class="tab-label">Fiches</div>
+    </div>
+    <div class="tab" id="tab-search" onclick="switchTab('search')">
+      <div class="tab-indicator"></div>
+      <div class="tab-icon">🔍</div>
+      <div class="tab-label">Recherche</div>
     </div>
     <div class="tab" id="tab-calc" onclick="switchTab('calc')">
       <div class="tab-indicator"></div>
@@ -2535,8 +2768,339 @@ function deletePhoto(catId, idx) {
 document.getElementById('photoCatSel')?.addEventListener('change', renderAdminPhotos);
 
 // =====================
-// ADMIN — IA INSTRUCTIONS
+// THEME CLAIR / SOMBRE
 // =====================
+function initTheme() {
+  const saved = localStorage.getItem('vitalya_theme') || 'dark';
+  if (saved === 'light') {
+    document.body.classList.add('light-mode');
+    document.getElementById('themeToggle').textContent = '☀️';
+  }
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light-mode');
+  const btn = document.getElementById('themeToggle');
+  btn.textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('vitalya_theme', isLight ? 'light' : 'dark');
+}
+
+initTheme();
+
+// =====================
+// TIMER TEMPS DE CONTACT
+// =====================
+let timerInterval = null;
+let timerSeconds = 0;
+let timerTotal = 0;
+let timerRunning = false;
+
+function showTimer(seconds, productName, epi) {
+  timerTotal = seconds;
+  timerSeconds = seconds;
+  timerRunning = false;
+  const box = document.getElementById('timerBox');
+  box.className = 'timer-box show';
+  document.getElementById('timerLabel').textContent = '⏱️ Temps de contact';
+  document.getElementById('timerProduct').textContent = productName;
+  document.getElementById('timerEpiLabel').textContent = epi || '';
+  document.getElementById('timerStartBtn').textContent = '▶ Démarrer';
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  document.getElementById('timerDisplay').textContent =
+    String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  const pct = timerTotal > 0 ? (timerSeconds / timerTotal) * 100 : 0;
+  const fill = document.getElementById('timerFill');
+  fill.style.width = pct + '%';
+  fill.style.background = pct > 50 ? 'var(--cyan)' : pct > 20 ? '#FFB347' : '#FF6B75';
+  const box = document.getElementById('timerBox');
+  if (timerSeconds <= 0) {
+    box.className = 'timer-box show done';
+    document.getElementById('timerLabel').textContent = '✅ Temps écoulé !';
+  } else if (pct <= 30) {
+    box.className = 'timer-box show warning';
+  }
+}
+
+function timerToggle() {
+  if (timerRunning) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    document.getElementById('timerStartBtn').textContent = '▶ Reprendre';
+  } else {
+    if (timerSeconds <= 0) { timerReset(); return; }
+    timerRunning = true;
+    document.getElementById('timerStartBtn').textContent = '⏸ Pause';
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      updateTimerDisplay();
+      if (timerSeconds <= 0) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        document.getElementById('timerStartBtn').textContent = '▶ Restart';
+        // Vibration si supportée
+        if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+      }
+    }, 1000);
+  }
+}
+
+function timerReset() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerSeconds = timerTotal;
+  document.getElementById('timerStartBtn').textContent = '▶ Démarrer';
+  document.getElementById('timerBox').className = 'timer-box show';
+  document.getElementById('timerLabel').textContent = '⏱️ Temps de contact';
+  updateTimerDisplay();
+}
+
+// Intégration timer dans le calcul
+const TIMER_DATA = {
+  'suma-bac-d10': { seconds: 300, label: 'Suma Bac D10 — Désinfection', epi: '🧤 Gants ménage' },
+  'suma-chlor-d44': { seconds: 300, label: 'Suma Chlor D4.4 — Légumes', epi: '🧤 Gants + 👓 Lunettes' },
+  'suma-calc-d5': { seconds: 600, label: 'Suma Calc D5 — Détartrage', epi: '🧤 Gants chimiques' },
+  'suma-grill-d9': { seconds: 1200, label: 'Suma Grill D9 — Fours', epi: '🧤 Gants + 👓 Lunettes + 💨 Ventilation' },
+  'suma-frit-d91': { seconds: 900, label: 'Suma Frit D9.1 — Friteuses', epi: '🧤 Gants + 👓 Lunettes' },
+  'taski-sani-calc': { seconds: 300, label: 'TASKI Sani Calc — Sanitaires', epi: '🧤 Gants + 👓 Lunettes' },
+  'rc-r1plus': { seconds: 300, label: 'Room Care R1-plus', epi: '🧤 Gants' },
+  'rc-r6plus': { seconds: 300, label: 'Room Care R6-plus', epi: '🧤 Gants + 👓 Lunettes' },
+};
+
+// Hook into existing calcDosage to show timer
+const _origCalcDosage = window.calcDosage;
+
+// =====================
+// COMPARATEUR PRODUITS
+// =====================
+const COMP_DATA = {
+  'suma-bac-d10':   { name:'Suma Bac D10', usage:'Désinfectant surfaces', dilution:'1% (10ml/L)', contact:'5 min', ph:'~11', epi:'Gants ménage', rinçage:'Obligatoire', chlore:'Non', famille:'Suma' },
+  'suma-chlor-d44': { name:'Suma Chlor D4.4', usage:'Désinfectant légumes', dilution:'4ml/L', contact:'5 min', ph:'~9', epi:'Gants+Lunettes', rinçage:'Obligatoire abondant', chlore:'Oui ⚠️', famille:'Suma' },
+  'suma-calc-d5':   { name:'Suma Calc D5', usage:'Détartrage LV', dilution:'5-10%', contact:'10-15 min', ph:'~2', epi:'Gants chimiques', rinçage:'Obligatoire', chlore:'Non (acide)', famille:'Suma' },
+  'suma-star-d1':   { name:'Suma Star D1', usage:'Lavage manuel vaisselle', dilution:'1 pression/10L', contact:'Immédiat', ph:'~8', epi:'Gants recommandés', rinçage:'Non (faible conc.)', chlore:'Non', famille:'Suma' },
+  'suma-grill-d9':  { name:'Suma Grill D9', usage:'Fours & grills', dilution:'Prêt emploi', contact:'15-30 min', ph:'~13', epi:'Gants+Lunettes', rinçage:'Obligatoire', chlore:'Non (alcalin fort)', famille:'Suma' },
+  'nova-l6':        { name:'Nova L6 SafePack', usage:'Détergent LV machine', dilution:'1g/L', contact:'Cycle LV', ph:'~11', epi:'Aucun', rinçage:'Cycle machine', chlore:'Non', famille:'LV Machine' },
+  'select-a7':      { name:'Select A7', usage:'Rinçage LV machine', dilution:'0.2g/L', contact:'Cycle LV', ph:'~6', epi:'Aucun', rinçage:'Cycle machine', chlore:'Non', famille:'LV Machine' },
+  'revoflow-p2':    { name:'Revoflow Max P2', usage:'Détergent LV poudre', dilution:'0.5g/L', contact:'Cycle LV', ph:'~11', epi:'Aucun', rinçage:'Cycle machine', chlore:'Non', famille:'LV Machine' },
+  'taski-jontec300':{ name:'TASKI Jontec 300', usage:'Nettoyage sols', dilution:'1 pompe/8L', contact:'Immédiat', ph:'~7', epi:'Aucun', rinçage:'Non requis', chlore:'Non', famille:'TASKI' },
+  'taski-sprint200':{ name:'TASKI Sprint 200', usage:'Surfaces & miroirs', dilution:'1 pompe/3L', contact:'Immédiat', ph:'~8', epi:'Aucun', rinçage:'Non requis', chlore:'Non', famille:'TASKI' },
+  'taski-sani4in1': { name:'TASKI Sani 4in1', usage:'Sanitaires', dilution:'2 pompes/2.5L', contact:'Immédiat', ph:'~3', epi:'Gants recommandés', rinçage:'Non requis', chlore:'Non (acide)', famille:'TASKI' },
+  'taski-sani-calc':{ name:'TASKI Sani Calc', usage:'Détartrage sanitaires', dilution:'1 pompe/3L', contact:'5 min', ph:'~2', epi:'Gants+Lunettes', rinçage:'Obligatoire', chlore:'Non (acide)', famille:'TASKI' },
+  'clax-100':       { name:'Clax 100', usage:'Blanchisserie standard', dilution:'1.6ml/L', contact:'Cycle machine', ph:'~11', epi:'Aucun', rinçage:'Cycle machine', chlore:'Non', famille:'Clax' },
+  'clax-build':     { name:'Clax Build', usage:'Blanchisserie alcalin', dilution:'8ml/L', contact:'Cycle machine', ph:'~13', epi:'Aucun', rinçage:'Cycle machine', chlore:'Non', famille:'Clax' },
+  'rc-r1plus':      { name:'Room Care R1-plus', usage:'Détartrage sanitaires', dilution:'2-5%', contact:'5 min', ph:'~2', epi:'Gants recommandés', rinçage:'Obligatoire', chlore:'Non (acide)', famille:'Room Care' },
+  'rc-r6plus':      { name:'Room Care R6-plus', usage:'Détartrage fort', dilution:'5-10%', contact:'5 min min.', ph:'~1', epi:'Gants+Lunettes', rinçage:'Obligatoire', chlore:'Non (acide fort)', famille:'Room Care' },
+};
+
+function initComparator() {
+  const prods = Object.entries(COMP_DATA);
+  ['compA','compB'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = `<option value="">— ${id === 'compA' ? 'Produit A' : 'Produit B'} —</option>`;
+    // Group by famille
+    const families = {};
+    prods.forEach(([k, v]) => { if (!families[v.famille]) families[v.famille] = []; families[v.famille].push([k,v]); });
+    Object.entries(families).forEach(([fam, items]) => {
+      const grp = document.createElement('optgroup');
+      grp.label = '── ' + fam + ' ──';
+      items.forEach(([k, v]) => {
+        const opt = document.createElement('option');
+        opt.value = k; opt.textContent = v.name;
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    });
+  });
+}
+
+function doCompare() {
+  const a = document.getElementById('compA').value;
+  const b = document.getElementById('compB').value;
+  if (!a || !b) { showToast('⚠️ Choisissez 2 produits', true); return; }
+  if (a === b) { showToast('⚠️ Choisissez 2 produits différents', true); return; }
+  const da = COMP_DATA[a], db = COMP_DATA[b];
+  const rows = [
+    ['Usage', 'usage'],
+    ['Dilution', 'dilution'],
+    ['Temps contact', 'contact'],
+    ['pH', 'ph'],
+    ['EPI requis', 'epi'],
+    ['Rinçage', 'rinçage'],
+    ['Chloré', 'chlore'],
+    ['Famille', 'famille'],
+  ];
+  document.getElementById('compResult').innerHTML = `
+    <div class="comp-table-wrap">
+      <table class="comp-table">
+        <tr>
+          <th></th>
+          <th class="prod-a">${da.name}</th>
+          <th class="prod-b">${db.name}</th>
+        </tr>
+        ${rows.map(([label, key]) => `
+          <tr>
+            <td>${label}</td>
+            <td class="val-a">${da[key]}</td>
+            <td class="val-b">${db[key]}</td>
+          </tr>
+        `).join('')}
+      </table>
+    </div>
+  `;
+}
+
+initComparator();
+
+// Hook timer after calcDosage
+function showTimerIfNeeded(prodId, modeLabel) {
+  const t = TIMER_DATA[prodId];
+  if (t) {
+    showTimer(t.seconds, t.label + (modeLabel ? ' — ' + modeLabel : ''), t.epi);
+  } else {
+    document.getElementById('timerBox').className = 'timer-box';
+  }
+}
+
+// =====================
+// RECHERCHE GLOBALE AMÉLIORÉE
+// =====================
+const SEARCH_DB = [
+  // LV Machine
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Nova L6 SafePack', body:'Détergent LV machine · 1g/L · SafePack · Lessiviel haute performance' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Nova L6 Pur-Eco', body:'Détergent LV machine · 1g/L · Version Pur-Eco' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Select A7 Pur-Eco', body:'Rinçage LV machine · 0.2g/L · Doseur D250' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Special L4', body:'Détergent LV machine · 1.2g/L' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Revoflow Max P1', body:'Détergent LV poudre · 0.5g/L · Voyant rouge = produit vide' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Revoflow Max P2 Pur-Eco', body:'Détergent LV poudre · 0.5g/L' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Ultra L2', body:'Détergent LV machine · 1g/L' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Lima L3', body:'Détergent LV machine · 1g/L · Avec chlore' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Jade L8 Pur-Eco', body:'Détergent LV machine · 1g/L' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Tera L56', body:'Détergent LV machine · 1g/L' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Combi+ LA6', body:'Détergent LV combiné · 1g/L · Lavage et rinçage en un' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Suma Calc D5 — Détartrage LV', body:'2 pompes 20ml pour 800ml · Gants chimiques · Éteindre doseur avant · 5-10% selon entartrage' },
+  { cat:'🍽️ LV Machine', tags:['dosage','lv'], title:'Top M40 — Pastilles LV', body:'1-2 pastilles au démarrage puis 1 pastille tous les 5 lavages' },
+  // Désinfection
+  { cat:'🦠 Désinfection', tags:['dosage'], title:'Suma Bac D10', body:'1% (10ml/L) · 5 min contact · Rincer surfaces alimentaires · Gants ménage · Buse violette 1 pompe/2.5L' },
+  { cat:'🦠 Désinfection', tags:['dosage'], title:'Suma Chlor D4.4', body:'4ml/L légumes · 5 min · Rincer abondamment · JAMAIS mélanger avec acide · Buse N QFM' },
+  { cat:'🦠 Désinfection', tags:['dosage'], title:'Suma Chlorsan D10.4', body:'1% (10ml/L) · 5 min · Gants + lunettes · Poste désinfection buse violette' },
+  { cat:'🦠 Désinfection', tags:['dosage'], title:'Divosan Etha-plus', body:'Prêt emploi sans rinçage · NE remplace PAS Bac D10 · Désinfection surfaces' },
+  // Lavage manuel
+  { cat:'🧴 Lavage Manuel', tags:['dosage'], title:'Suma Star D1', body:'1 pression pour 10L · Buse K 1 pompe/2L · Buse P 1 pompe/25L · Lavage vaisselle manuel' },
+  { cat:'🧴 Lavage Manuel', tags:['dosage'], title:'Active M20', body:'50g pour 50L · Poudre lavage manuel · Avec chlore' },
+  { cat:'🧴 Lavage Manuel', tags:['dosage'], title:'Classic M7', body:'Poudre lavage manuel · Avec chlore' },
+  // Cuisine
+  { cat:'🔥 Cuisine', tags:['dosage'], title:'Suma Grill D9 — Fours', body:'Prêt emploi · Surface 60-70°C · 15-30 min · Brosser · Rincer · Ventilation obligatoire · Pas sur aluminium' },
+  { cat:'🔥 Cuisine', tags:['dosage'], title:'Suma Frit D9.1 — Friteuses', body:'30g/L eau chaude 50°C · 10-30 min · Rincer 2 fois · Ventilation' },
+  { cat:'🔥 Cuisine', tags:['dosage'], title:'Suma Shine K2 — Inox', body:'50g pour 10L · Entretien inox' },
+  // TASKI
+  { cat:'🧹 TASKI Sols', tags:['dosage'], title:'TASKI Jontec 300', body:'Buse O · 1 pompe pour 8L · Autolaveuse 200ml/10L · Nettoyage sols' },
+  { cat:'🧹 TASKI Sols', tags:['dosage'], title:'TASKI Sprint 200', body:'Buse M · 1 pompe pour 3L · Surfaces et miroirs' },
+  { cat:'🧹 TASKI Sols', tags:['dosage'], title:'TASKI Sani 4in1', body:'Buse J · 2 pompes pour 2.5L · Sanitaires · Détergent désinfectant' },
+  { cat:'🧹 TASKI Sols', tags:['dosage'], title:'TASKI Sani Calc', body:'Buse M · 1 pompe pour 3L · Détartrage sanitaires · 5 min contact' },
+  { cat:'🧹 TASKI Sols', tags:['dosage'], title:'TASKI Tapi Shampoo', body:'400ml pour 10L · Shampoing moquette' },
+  // Clax
+  { cat:'👕 Blanchisserie', tags:['dosage'], title:'Clax Build', body:'8ml/L · Détergent alcalin blanchisserie · Usage automatique' },
+  { cat:'👕 Blanchisserie', tags:['dosage'], title:'Clax 100', body:'1.6ml/L · Lavage standard blanchisserie' },
+  { cat:'👕 Blanchisserie', tags:['dosage'], title:'Clax Bright', body:'2ml/L · Blanchiment optique' },
+  { cat:'👕 Blanchisserie', tags:['dosage'], title:'Clax Soft Fresh', body:'1.5ml/L · Adoucissant · Gobelet 15ml/10L manuel' },
+  { cat:'👕 Blanchisserie', tags:['dosage'], title:'Clax Profi Forte', body:'3.8ml/L · Lavage intensif' },
+  // Doseurs
+  { cat:'⚙️ Doseurs', tags:['doseur','ref'], title:'D250 — Voyants', body:'Vert = OK · Rouge clignotant = vérifier produits · Amorçage appui long bouton 1' },
+  { cat:'⚙️ Doseurs', tags:['doseur','ref'], title:'D250 — Cassettes', body:'Détergent: Tube D_flex Réf 1218606 · Cartridge Réf 1218604 · Rinçage: Tube P_flex Réf D1226680 · Réf D1226832 · Éteindre avant remplacement' },
+  { cat:'⚙️ Doseurs', tags:['doseur','ref'], title:'Revoflow — Voyants LED', body:'Vert fixe = OK · Vert clignote = dosage · Rouge = vide ou mal enclenchée · Jaune = comm. éteindre 10s · Bleu = arrivée eau' },
+  { cat:'⚙️ Doseurs', tags:['doseur','ref'], title:'Revoflow — Références', body:'Gouttière Réf 1219247 · Cassette rinçage Réf 1203930 · Kit Rinçage+Carte Réf 5548534' },
+  { cat:'⚙️ Doseurs', tags:['doseur'], title:'Accuratic DS — Specs', body:'85-240V AC · 0.7A · Détergent 150ml/min · Rinçage 20ml/min · Sondes D42 D44 Capio · Remplace D250 Q200 D3000' },
+  { cat:'⚙️ Doseurs', tags:['doseur'], title:'Choix doseur — Monobain/Capot', body:'Accuratic DP L ou DP R pour machine monobain ou à capot' },
+  { cat:'⚙️ Doseurs', tags:['doseur'], title:'Choix doseur — Paniers auto', body:'Accuratic DS avec sonde pour machine à paniers avancement automatique' },
+  { cat:'⚙️ Doseurs', tags:['doseur'], title:'Lave-verres encastré', body:'NE PAS installer de doseurs — Pastilles uniquement' },
+  // Références pièces
+  { cat:'📦 Références', tags:['ref'], title:'SafePack — Connecteurs', body:'L6 Réf 1204166 · A7 Réf 1204167 · D10 Réf 1204173 · T30 Réf 1204165 · 3RL1 Réf 1204239 · Tourner sans pousser' },
+  { cat:'📦 Références', tags:['ref'], title:'Poste désinfection — Pièces', body:'Clapet inox D1228685 · Clapet plastique 1207185 · Buse violette DA0155 · Buse turquoise DA0861 · Pistolet 67117 · Lance DA0718 · Insert jaune D1227599 · Tuyau 15m 1207160' },
+  { cat:'📦 Références', tags:['ref','doseur'], title:'QFM — Dépannage', body:'Buses calibrage Réf 1204057 · Test Chlore Réf 7518583 · Fourchette Réf 1202017 · Tuyau gris Réf 1200541' },
+  { cat:'📦 Références', tags:['ref','doseur'], title:'DQFM — Kits McDo', body:'HA 1212107 · DR 1212104 · FC 1212108 · WC 1212105 · MD D1228640 · SK 1212109 · Capot 67056 · Capot+serrure 1221010' },
+  { cat:'📦 Références', tags:['ref','doseur'], title:'Kiehl — Câblage sonde inductive', body:'Rouge=22 · Blanc=23 · Gris=21 · Noir=24 · Jaune=25 · Bleu=19 · Brun=20' },
+  { cat:'📦 Références', tags:['ref','doseur'], title:'Kiehl — Pièces rechange', body:'Roulette détergent YERS01073 · Roulette rinçage YERS01074 · Tuyau Sekobril YERS01078 · Sonde z155331 · CPU YERS01072' },
+  // Sécurité
+  { cat:'⚠️ Sécurité', tags:['securite'], title:'EPI obligatoires Vitalya', body:'Blouse · Chaussures sécurité · Lunettes · Masques · Gants chimique/anti-coupure/chaleur/électrique · Masque FFP3 · Short STRICTEMENT INTERDIT' },
+  { cat:'⚠️ Sécurité', tags:['securite'], title:'Habilitations électriques', body:'B1V · B2V · BR · BC · HO obligatoires · Multimètre + VAT + kit consignation' },
+  { cat:'⚠️ Sécurité', tags:['securite'], title:'DANGER — Mélange interdit', body:'JAMAIS mélanger Chlor D4.4 + Calc D5 — chloré + acide = gaz dangereux' },
+  { cat:'⚠️ Sécurité', tags:['securite'], title:'SAV / Dépannage', body:'Contacter Lyes au 07 66 00 90 62' },
+  { cat:'⚠️ Sécurité', tags:['securite'], title:'Gestion de crise', body:'Client injoignable → jamais annuler sans validation Vitalya · Refus signature → noter nom fonction raison · Vitalya ne installe pas de mitigeurs' },
+  // Tableau gouttes
+  { cat:'🔬 Tableau Gouttes', tags:['dosage','lv'], title:'Nova L6 — Gouttes', body:'1.0 g/L → 8 gouttes A1 · 0.5 → 4 · 1.5 → 12 · 2.0 → 16 · Acide 3: 3.0 → 7 · 6.0 → 14' },
+  { cat:'🔬 Tableau Gouttes', tags:['dosage','lv'], title:'Revoflow P2 — Gouttes', body:'1.0 g/L → 15 gouttes A1 · 0.5 → 8 · 1.5 → 22 · 2.0 → 27 · Acide 3: 3.0 → 45' },
+  { cat:'🔬 Tableau Gouttes', tags:['dosage','lv'], title:'Special L4 — Gouttes', body:'1.0 g/L → 13 gouttes A1 · 0.5 → 7 · 1.5 → 19 · Acide 3: 3.0 → 11 · 6.0 → 22' },
+  { cat:'🔬 Tableau Gouttes', tags:['dosage','lv'], title:'Active M20 — Gouttes', body:'1.0 g/L → 15 A1 · 0.5 → 8 · 1.5 → 21 · Acide 3: 3.0 → 10 · 6.0 → 19' },
+];
+
+let searchScope = 'all';
+
+function setScope(s, btn) {
+  searchScope = s;
+  document.querySelectorAll('.scope-chip').forEach(c => c.classList.remove('on'));
+  btn.classList.add('on');
+  const q = document.getElementById('searchInput').value;
+  if (q.trim()) doSearch(q);
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').style.display = 'none';
+  document.getElementById('searchResults').innerHTML = `
+    <div class="search-empty">
+      <div style="font-size:44px;margin-bottom:14px;">🔍</div>
+      <strong>Recherche globale</strong><br>
+      <span style="color:var(--muted);font-size:13px;">Tapez un produit, un dosage,<br>une référence ou un protocole</span>
+    </div>`;
+}
+
+function doSearch(q) {
+  const query = q.toLowerCase().trim();
+  document.getElementById('searchClear').style.display = query ? 'block' : 'none';
+  if (!query) { clearSearch(); return; }
+
+  const results = SEARCH_DB.filter(item => {
+    const matchScope = searchScope === 'all' || item.tags.includes(searchScope);
+    const text = (item.title + ' ' + item.body + ' ' + item.cat).toLowerCase();
+    const words = query.split(' ').filter(Boolean);
+    const matchQuery = words.every(w => text.includes(w));
+    return matchScope && matchQuery;
+  });
+
+  const hl = (text, q) => {
+    const words = q.split(' ').filter(Boolean);
+    let result = text;
+    words.forEach(w => {
+      const re = new RegExp('(' + w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+      result = result.replace(re, '<mark style="background:rgba(59,206,172,0.25);color:var(--cyan);border-radius:3px;padding:0 2px;font-weight:700;">$1</mark>');
+    });
+    return result;
+  };
+
+  const container = document.getElementById('searchResults');
+  if (!results.length) {
+    container.innerHTML = `<div class="search-empty"><div style="font-size:40px;margin-bottom:12px;">😕</div><strong>Aucun résultat</strong><br><span style="color:var(--muted);font-size:13px;">pour "<em>${q}</em>"</span></div>`;
+    return;
+  }
+
+  container.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:0 0 10px;font-weight:600;">${results.length} résultat${results.length>1?'s':''} · "<strong>${q}</strong>"</div>` +
+    results.map(r => `
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:13px 15px;margin-bottom:9px;animation:msgIn 0.2s ease;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--cyan);background:rgba(59,206,172,0.1);border:1px solid rgba(59,206,172,0.2);border-radius:6px;padding:2px 8px;">${r.cat}</span>
+          <span style="font-size:14px;font-weight:700;flex:1;">${hl(r.title, query)}</span>
+        </div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.5;">${hl(r.body, query)}</div>
+      </div>
+    `).join('');
+}
+
+
 const IA_INSTRUCTIONS_KEY = 'vitalya_ia_instructions';
 
 function getIaInstructions() {
@@ -3352,6 +3916,8 @@ function calcDosage() {
   w.style.display = mode.warning ? 'block' : 'none'; if (mode.warning) w.textContent = mode.warning;
   e.style.display = mode.epi ? 'block' : 'none'; if (mode.epi) e.textContent = '🦺 EPI : ' + mode.epi;
   resultEl.classList.add('show');
+  // Afficher timer si le produit a un temps de contact
+  showTimerIfNeeded(prodId, mode.label);
 }
 
 function texteDose(d, unit) {
