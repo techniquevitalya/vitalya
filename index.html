@@ -1122,6 +1122,35 @@ body {
 .panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 499; display: none; }
 .panel-overlay.open { display: block; }
 </style>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA-2eIXXrPB5EQpoumEexRTb30iuNH1DlA",
+    authDomain: "vitalya-expert.firebaseapp.com",
+    databaseURL: "https://vitalya-expert-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "vitalya-expert",
+    storageBucket: "vitalya-expert.firebasestorage.app",
+    messagingSenderId: "1008734295197",
+    appId: "1:1008734295197:web:d2df383d4bc367f07d3074"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Expose Firebase functions globally so the rest of the app can use them
+  window._fbDb = db;
+  window._fbRef = ref;
+  window._fbSet = set;
+  window._fbGet = get;
+  window._fbOnValue = onValue;
+  window._fbReady = true;
+
+  // Notify app that Firebase is ready
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 </head>
 <body>
 
@@ -1760,11 +1789,15 @@ function doLogin() {
   if ((username === 'admin' || username === '') && pwd === ADMIN_PWD) {
     currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
     showScreen('adminScreen');
-    renderAdminDocs();
-    renderAdminCatList();
-    renderAdminStats();
-    renderIaHistory();
-    renderUserList();
+    Promise.all([fbLoadPhotos(), fbLoadCats()]).then(() => {
+      renderAdminDocs();
+      renderAdminCatList();
+      renderAdminStats();
+      renderIaHistory();
+      renderUserList();
+      fbListenPhotos();
+      fbListenCats();
+    });
     return;
   }
 
@@ -1790,8 +1823,14 @@ function doLogin() {
 function loadUserData(uid) {
   // Chat history per user
   chatHistory = JSON.parse(localStorage.getItem(userHistKey(uid) + '_chat') || '[]');
-  // Sync photos from Cloudinary so tech sees all shared media
-  setTimeout(syncPhotosFromCloudinary, 500);
+  // Load shared photos & cats from Firebase
+  Promise.all([fbLoadPhotos(), fbLoadCats()]).then(() => {
+    buildFichesList();
+    if (typeof renderAdminStats === 'function') renderAdminStats();
+  });
+  // Start listening for real-time updates
+  fbListenPhotos();
+  fbListenCats();
   // Clear messages and show welcome
   const msgs = document.getElementById('messages');
   if (msgs) {
@@ -1979,10 +2018,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   document.getElementById(tab + 'Page').classList.add('active');
-  // Refresh photos when opening fiches tab
-  if (tab === 'fiches') {
-    syncPhotosFromCloudinary();
-  }
+  // Firebase listener handles real-time updates automatically
 }
 
 // =====================
@@ -3060,70 +3096,80 @@ ta.addEventListener('keydown', e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDe
 // =====================
 // PHOTOS (Cloudinary)
 // =====================
-// ─── SHARED PHOTO STORE (Cloudinary-backed) ──────────────────────────────────
-// Photos are stored on Cloudinary and visible to ALL users
-// We cache the index in localStorage for speed, but it's always synced
+// ─── SHARED PHOTO STORE (Firebase Realtime Database) ────────────────────────
+// Photos index stored on Firebase — visible to ALL users in real time
+
+let _photosCache = {};
 
 function getPhotos() {
-  return JSON.parse(localStorage.getItem(PHOTOS_KEY) || '{}');
+  return _photosCache;
 }
+
 function savePhotos(p) {
-  localStorage.setItem(PHOTOS_KEY, JSON.stringify(p));
-  // Broadcast update to other tabs/users on same device
-  try { localStorage.setItem(PHOTOS_KEY + '_ts', Date.now()); } catch(e) {}
+  _photosCache = p;
+  localStorage.setItem(PHOTOS_KEY, JSON.stringify(p)); // local cache
+  // Save to Firebase
+  fbSavePhotos(p);
 }
 
-// Sync photos index across users via Cloudinary tags
-// Each photo is tagged with its folder key (e.g. "vitalya_lv-branchement")
-async function syncPhotosFromCloudinary() {
-  const cats = getCats();
-  const photos = getPhotos();
-  let changed = false;
+async function fbSavePhotos(p) {
+  if (!window._fbReady) return;
+  try {
+    const r = window._fbRef(window._fbDb, 'vitalya/photos');
+    await window._fbSet(r, p);
+  } catch(e) { console.error('Firebase save error:', e); }
+}
 
-  // For each category and sub-folder, fetch from Cloudinary
-  const keysToFetch = [];
-  cats.forEach(cat => {
-    keysToFetch.push(cat.id);
-    (cat.subs || []).forEach(sub => keysToFetch.push(`${cat.id}__${sub.id}`));
-  });
-
-  for (const key of keysToFetch) {
-    try {
-      const folder = `vitalya/${key}`;
-      const url = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/image/list/${encodeURIComponent(folder)}.json`;
-      const resp = await fetch(url);
-      if (!resp.ok) continue;
-      const data = await resp.json();
-      if (!data.resources) continue;
-
-      const newPhotos = data.resources.map(r => {
-        // Check if we have an existing label for this resource
-        const existing = (photos[key] || []).find(p => p.public_id === r.public_id);
-        const isVideo = r.resource_type === 'video';
-        const ext = isVideo ? 'mp4' : 'jpg';
-        const baseUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/${r.resource_type}/upload/${r.public_id}`;
-        return {
-          url: isVideo ? `${baseUrl}.mp4` : `${baseUrl}.jpg`,
-          public_id: r.public_id,
-          label: existing?.label || r.public_id.split('/').pop(),
-          date: existing?.date || new Date(r.created_at).toLocaleDateString('fr-FR'),
-          isVideo: isVideo
-        };
-      });
-
-      if (JSON.stringify(newPhotos) !== JSON.stringify(photos[key])) {
-        photos[key] = newPhotos;
-        changed = true;
+async function fbLoadPhotos() {
+  if (!window._fbReady) {
+    // Fallback to localStorage while Firebase loads
+    _photosCache = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '{}');
+    return _photosCache;
+  }
+  try {
+    const r = window._fbRef(window._fbDb, 'vitalya/photos');
+    const snap = await window._fbGet(r);
+    if (snap.exists()) {
+      _photosCache = snap.val() || {};
+      localStorage.setItem(PHOTOS_KEY, JSON.stringify(_photosCache));
+    } else {
+      // First time — migrate from localStorage if any
+      const local = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '{}');
+      if (Object.keys(local).length > 0) {
+        _photosCache = local;
+        await fbSavePhotos(local);
       }
-    } catch(e) { /* folder might not exist yet */ }
+    }
+  } catch(e) {
+    console.error('Firebase load error:', e);
+    _photosCache = JSON.parse(localStorage.getItem(PHOTOS_KEY) || '{}');
   }
+  return _photosCache;
+}
 
-  if (changed) {
-    savePhotos(photos);
-    renderAdminCatList();
-    buildFichesList();
-    if (typeof renderAdminStats === 'function') renderAdminStats();
-  }
+function fbListenPhotos() {
+  if (!window._fbReady) return;
+  try {
+    const r = window._fbRef(window._fbDb, 'vitalya/photos');
+    window._fbOnValue(r, (snap) => {
+      if (snap.exists()) {
+        _photosCache = snap.val() || {};
+        localStorage.setItem(PHOTOS_KEY, JSON.stringify(_photosCache));
+        // Refresh UI silently
+        if (document.getElementById('adminCatList')) renderAdminCatList();
+        buildFichesList();
+        if (typeof renderAdminStats === 'function') renderAdminStats();
+      }
+    });
+  } catch(e) { console.error('Firebase listen error:', e); }
+}
+
+// Firebase sync is handled by fbListenPhotos and fbListenCats
+async function syncPhotosFromCloudinary() {
+  await fbLoadPhotos();
+  renderAdminCatList();
+  buildFichesList();
+  if (typeof renderAdminStats === 'function') renderAdminStats();
 }
 
 function openLightbox(url, caption, videoFlag) {
@@ -3563,14 +3609,63 @@ const DEFAULT_CATS = [
   { id: 'securite', icon: '⚠️', name: 'Sécurité & EPI', subs: [] },
 ];
 
+let _catsCache = null;
+
 function getCats() {
+  if (_catsCache) return _catsCache;
   const saved = localStorage.getItem(CATS_KEY);
-  if (saved) return JSON.parse(saved);
-  const cats = DEFAULT_CATS.map(c => ({ ...c, subs: [] }));
-  saveCats(cats);
-  return cats;
+  if (saved) { _catsCache = JSON.parse(saved); return _catsCache; }
+  _catsCache = DEFAULT_CATS.map(c => ({ ...c, subs: [] }));
+  return _catsCache;
 }
-function saveCats(cats) { localStorage.setItem(CATS_KEY, JSON.stringify(cats)); }
+
+function saveCats(cats) {
+  _catsCache = cats;
+  localStorage.setItem(CATS_KEY, JSON.stringify(cats));
+  fbSaveCats(cats);
+}
+
+async function fbSaveCats(cats) {
+  if (!window._fbReady) return;
+  try {
+    const r = window._fbRef(window._fbDb, 'vitalya/cats');
+    await window._fbSet(r, cats);
+  } catch(e) { console.error('Firebase cats save error:', e); }
+}
+
+async function fbLoadCats() {
+  if (!window._fbReady) return getCats();
+  try {
+    const r = window._fbRef(window._fbDb, 'vitalya/cats');
+    const snap = await window._fbGet(r);
+    if (snap.exists()) {
+      _catsCache = snap.val();
+      localStorage.setItem(CATS_KEY, JSON.stringify(_catsCache));
+    } else {
+      // First time — save defaults to Firebase
+      const cats = getCats();
+      await fbSaveCats(cats);
+    }
+  } catch(e) {
+    console.error('Firebase cats load error:', e);
+  }
+  return getCats();
+}
+
+function fbListenCats() {
+  if (!window._fbReady) return;
+  try {
+    const r = window._fbRef(window._fbDb, 'vitalya/cats');
+    window._fbOnValue(r, (snap) => {
+      if (snap.exists()) {
+        _catsCache = snap.val();
+        localStorage.setItem(CATS_KEY, JSON.stringify(_catsCache));
+        renderAdminCatList();
+        buildFichesList();
+      }
+    });
+  } catch(e) { console.error('Firebase cats listen error:', e); }
+}
 
 function renderAdminCatList() {
   const cats = getCats();
@@ -3710,8 +3805,7 @@ async function handlePhotoUploadV2(files, catId, subId) {
   if (typeof renderAdminStats === 'function') renderAdminStats();
   buildFichesList();
   showToast(`✅ ${uploaded} média${uploaded>1?'s':''} uploadé${uploaded>1?'s':''}!`);
-  // Sync so other users see it immediately
-  setTimeout(syncPhotosFromCloudinary, 1000);
+  // Data already saved to Firebase via savePhotos — all users will see it instantly
 }
 
 async function deletePhotoV2(catId, subId, idx) {
@@ -4181,13 +4275,29 @@ function showToast(msg, err=false) {
   setTimeout(() => t.remove(), 3000);
 }
 
-// Init
-renderAdminDocs();
-renderAdminStats();
-renderIaHistory();
-renderAdminCatList();
-renderUserList();
-buildFichesList();
+// Init — load Firebase data then render
+async function initApp() {
+  // Load shared data from Firebase
+  await Promise.all([fbLoadPhotos(), fbLoadCats()]);
+  renderAdminDocs();
+  renderAdminStats();
+  renderIaHistory();
+  renderAdminCatList();
+  renderUserList();
+  buildFichesList();
+  // Listen for real-time updates
+  fbListenPhotos();
+  fbListenCats();
+}
+
+// Wait for Firebase to be ready before init
+if (window._fbReady) {
+  initApp();
+} else {
+  window.addEventListener('firebase-ready', initApp);
+  // Fallback: if Firebase doesn't load in 3s, init with local data
+  setTimeout(() => { if (!window._fbReady) initApp(); }, 3000);
+}
 
 // =====================
 // FAVORIS
