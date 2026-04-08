@@ -1286,6 +1286,7 @@ const ADMIN_PWD = 'Vitalya@Admin2025';
 const TECH_PWD  = 'Vitalya2025';
 const CLOUDINARY_CLOUD = 'dtd2gudlg';
 const CLOUDINARY_PRESET = 'vitalya_uploads';
+const ANTHROPIC_KEY = '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';
 
 // Storage keys
 const PHOTOS_KEY = 'vitalya_photos';
@@ -2379,11 +2380,16 @@ async function sendMsg() {
     const messagesToSend = chatHistory.slice(-14);
     console.log('Sending messages:', JSON.stringify(messagesToSend));
     
-    const resp = await fetch('/.netlify/functions/claude', {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
         system: sys,
         messages: messagesToSend
@@ -2533,10 +2539,16 @@ async function handleDocUpload(files) {
 
 async function extractPDF(name, base64) {
   try {
-    const resp = await fetch('/.netlify/functions/claude', {
-      method:'POST', headers: { 'Content-Type': 'application/json' },
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
-        model:'claude-sonnet-4-20250514', max_tokens:800,
+        model:'claude-haiku-4-5-20251001', max_tokens:800,
         messages:[{ role:'user', content:[
           { type:'document', source:{ type:'base64', media_type:'application/pdf', data:base64 }},
           { type:'text', text:'Extrait toutes les infos clés : produits, dosages, concentrations, protocoles. Format concis pour base de connaissances technique.' }
