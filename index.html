@@ -214,7 +214,7 @@ body.light-mode .theme-toggle { background: rgba(0,0,0,0.08); }
   height: 100%; background: var(--cyan); border-radius: 8px;
   width: 0%; transition: width 0.3s;
 }
-</style>
+
 .timer-box {
   display: none;
   background: linear-gradient(135deg, rgba(59,206,172,0.12), rgba(10,36,99,0.15));
@@ -2827,7 +2827,21 @@ function getPhotos() { return JSON.parse(localStorage.getItem(PHOTOS_KEY) || '{}
 function savePhotos(p) { localStorage.setItem(PHOTOS_KEY, JSON.stringify(p)); }
 
 function openLightbox(url, caption) {
-  document.getElementById('lightboxImg').src = url;
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lightboxImg');
+  const existVid = lb.querySelector('.lb-video');
+  if (existVid) existVid.remove();
+  if (isVideo && isVideo(url)) {
+    lbImg.style.display = 'none';
+    const vid = document.createElement('video');
+    vid.src = url; vid.controls = true; vid.autoplay = true;
+    vid.className = 'lb-video';
+    vid.style.cssText = 'max-width:100%;max-height:80vh;border-radius:8px;';
+    lb.insertBefore(vid, lbImg.nextSibling);
+  } else {
+    lbImg.style.display = '';
+    lbImg.src = url;
+  }
   document.getElementById('lightboxCaption').textContent = caption || '';
   document.getElementById('lightbox').classList.add('open');
 }
@@ -3281,7 +3295,7 @@ function renderAdminCatList() {
           <div class="admin-cat-actions">
             <button class="admin-action-btn btn-rename" onclick="showRenameModal('${cat.id}')">✏️ Renommer</button>
             <button class="admin-action-btn btn-add-sub" onclick="showAddSubModal('${cat.id}')">📂 Sous-dossier</button>
-            <button class="admin-action-btn btn-add-photo" onclick="triggerPhotoUpload('${cat.id}', null)">📷 Photo</button>
+            <button class="admin-action-btn btn-add-photo" onclick="triggerPhotoUpload('${cat.id}', null)">📷 Média</button>
             ${ci >= DEFAULT_CATS.length ? `<button class="admin-action-btn btn-delete-cat" onclick="deleteCat('${cat.id}')">🗑</button>` : ''}
           </div>
           ${(cat.subs || []).map((sub, si) => {
@@ -3314,30 +3328,41 @@ function countPhotos(photos, catId) {
 }
 function countPhotosInSub(photos, catId, subId) { return (photos[`${catId}__${subId}`] || []).length; }
 
+function isVideo(url) {
+  return url && /\.(mp4|mov|avi|webm|mkv)$/i.test(url.split('?')[0]);
+}
+
+function mediaThumb(p, catId, subId, i) {
+  const subStr = subId ? `'${subId}'` : 'null';
+  const catStr = catId;
+  if (isVideo(p.url)) {
+    return `<div class="admin-photo-thumb">
+      <video src="${p.url}" style="width:100%;height:100%;object-fit:cover;" muted playsinline preload="metadata"></video>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;pointer-events:none;">▶️</div>
+      <button class="admin-photo-del" onclick="deletePhotoV2('${catStr}',${subStr},${i})">✕</button>
+      <div class="admin-photo-label-edit" onclick="renamePhoto('${catStr}',${subStr},${i})">${p.label||'📝'}</div>
+    </div>`;
+  }
+  return `<div class="admin-photo-thumb">
+    <img src="${p.url}" loading="lazy">
+    <button class="admin-photo-del" onclick="deletePhotoV2('${catStr}',${subStr},${i})">✕</button>
+    <div class="admin-photo-label-edit" onclick="renamePhoto('${catStr}',${subStr},${i})">${p.label||'📝'}</div>
+  </div>`;
+}
+
 function renderCatPhotoGrid(photos, catId) {
   const catPhotos = photos[catId] || [];
-  if (!catPhotos.length) return `<div style="font-size:12px;color:var(--muted);padding:8px 0 4px;">Aucune photo directe — appuyez 📷 pour en ajouter</div>`;
-  return `<div style="margin-top:10px;"><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">📸 Photos directes</div>
-    <div class="admin-photo-grid">${catPhotos.map((p,i) => `
-      <div class="admin-photo-thumb">
-        <img src="${p.url}" loading="lazy">
-        <button class="admin-photo-del" onclick="deletePhotoV2('${catId}',null,${i})">✕</button>
-        <div class="admin-photo-label-edit" onclick="renamePhoto('${catId}',null,${i})">${p.label||'📝'}</div>
-      </div>`).join('')}
+  if (!catPhotos.length) return `<div style="font-size:12px;color:var(--muted);padding:8px 0 4px;">Aucun média — appuyez 📷 pour en ajouter</div>`;
+  return `<div style="margin-top:10px;"><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">📸 Médias directs</div>
+    <div class="admin-photo-grid">${catPhotos.map((p,i) => mediaThumb(p, catId, null, i)).join('')}
     </div></div>`;
 }
 
 function renderSubPhotoGrid(photos, catId, subId) {
   const key = `${catId}__${subId}`;
   const subPhotos = photos[key] || [];
-  if (!subPhotos.length) return `<div style="font-size:12px;color:var(--muted);padding:6px 12px 10px;">Aucune photo — appuyez 📷 pour en ajouter</div>`;
-  return `<div class="admin-photo-grid" style="padding:0 12px 12px;">${subPhotos.map((p,i) => `
-    <div class="admin-photo-thumb">
-      <img src="${p.url}" loading="lazy">
-      <button class="admin-photo-del" onclick="deletePhotoV2('${catId}','${subId}',${i})">✕</button>
-      <div class="admin-photo-label-edit" onclick="renamePhoto('${catId}','${subId}',${i})">${p.label||'📝'}</div>
-    </div>`).join('')}
-  </div>`;
+  if (!subPhotos.length) return `<div style="font-size:12px;color:var(--muted);padding:6px 12px 10px;">Aucun média — appuyez 📷 pour en ajouter</div>`;
+  return `<div class="admin-photo-grid" style="padding:0 12px 12px;">${subPhotos.map((p,i) => mediaThumb(p, catId, subId, i)).join('')}</div>`;
 }
 
 function toggleAdminCat(catId) {
@@ -3350,7 +3375,9 @@ function toggleAdminCat(catId) {
 
 function triggerPhotoUpload(catId, subId) {
   const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
+  input.type = 'file';
+  input.accept = 'image/*,video/mp4,video/quicktime,video/x-msvideo,video/*';
+  input.multiple = true;
   input.onchange = (e) => handlePhotoUploadV2(e.target.files, catId, subId);
   input.click();
 }
@@ -3367,7 +3394,9 @@ async function handlePhotoUploadV2(files, catId, subId) {
       const fd = new FormData();
       fd.append('file', file); fd.append('upload_preset', CLOUDINARY_PRESET);
       fd.append('folder', `vitalya/${key}`);
-      const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method:'POST', body:fd });
+      const isVid = file.type.startsWith('video/');
+      const uploadType = isVid ? 'video' : 'image';
+      const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${uploadType}/upload`, { method:'POST', body:fd });
       const data = await resp.json();
       if (data.secure_url) {
         photos[key].push({ url: data.secure_url, label: file.name.replace(/\.[^.]+$/,''), date: new Date().toLocaleDateString('fr-FR') });
@@ -3588,7 +3617,12 @@ function openSubGallery(catId, subId, name, icon) {
   if (!catPhotos.length) { grid.innerHTML='<div class="photo-empty"><div class="emoji">📭</div><p>Aucune photo.</p></div>'; return; }
   catPhotos.forEach(p => {
     const item=document.createElement('div'); item.className='photo-item'; item.onclick=()=>openLightbox(p.url,p.label);
-    const img=document.createElement('img'); img.src=p.url; img.loading='lazy'; item.appendChild(img);
+    if (isVideo && isVideo(p.url)) {
+      const vid=document.createElement('video'); vid.src=p.url; vid.controls=true; vid.style.cssText='width:100%;height:100%;object-fit:cover;'; item.appendChild(vid);
+      const badge=document.createElement('div'); badge.style.cssText='position:absolute;top:6px;left:6px;font-size:16px;pointer-events:none;'; badge.textContent='▶️'; item.appendChild(badge);
+    } else {
+      const img=document.createElement('img'); img.src=p.url; img.loading='lazy'; item.appendChild(img);
+    }
     if(p.label){const lbl=document.createElement('div');lbl.className='photo-label';lbl.textContent=p.label;item.appendChild(lbl);}
     grid.appendChild(item);
   });
@@ -4091,7 +4125,21 @@ function renderPhotoGrid(photos) {
 let currentLightboxUrl = '';
 function openLightbox(url, caption) {
   currentLightboxUrl = url;
-  document.getElementById('lightboxImg').src = url;
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lightboxImg');
+  const existVid = lb.querySelector('.lb-video');
+  if (existVid) existVid.remove();
+  if (isVideo && isVideo(url)) {
+    lbImg.style.display = 'none';
+    const vid = document.createElement('video');
+    vid.src = url; vid.controls = true; vid.autoplay = true;
+    vid.className = 'lb-video';
+    vid.style.cssText = 'max-width:100%;max-height:80vh;border-radius:8px;';
+    lb.insertBefore(vid, lbImg.nextSibling);
+  } else {
+    lbImg.style.display = '';
+    lbImg.src = url;
+  }
   document.getElementById('lightboxCaption').textContent = caption || '';
   document.getElementById('lightbox').classList.add('open');
 }
