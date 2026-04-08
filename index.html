@@ -1138,11 +1138,15 @@ body {
     <div class="login-card">
       <div class="login-title">Connexion</div>
       <div class="input-group">
+        <label class="input-label">Identifiant</label>
+        <input type="text" class="input-field" id="loginUser" placeholder="Votre identifiant" autocomplete="username" autocapitalize="none">
+      </div>
+      <div class="input-group">
         <label class="input-label">Mot de passe</label>
-        <input type="password" class="input-field" id="loginPwd" placeholder="Entrez votre mot de passe" autocomplete="current-password">
+        <input type="password" class="input-field" id="loginPwd" placeholder="Votre mot de passe" autocomplete="current-password">
       </div>
       <button class="btn-login" onclick="doLogin()">Se connecter →</button>
-      <div class="login-error" id="loginError">❌ Mot de passe incorrect</div>
+      <div class="login-error" id="loginError">❌ Identifiant ou mot de passe incorrect</div>
     </div>
   </div>
 </div>
@@ -1153,7 +1157,7 @@ body {
   <div class="topbar">
     <div>
       <div class="topbar-logo">Vitalya</div>
-      <div class="topbar-sub">Assistant Technique</div>
+      <div class="topbar-sub" id="topbarUser">Assistant Technique</div>
     </div>
     <div class="topbar-right">
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Mode clair/sombre">🌙</button>
@@ -1223,6 +1227,11 @@ body {
     <div class="tab-page" id="fichesPage">
       <!-- LIST VIEW -->
       <div id="fichesList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+        <div style="padding:10px 14px 0;display:flex;justify-content:flex-end;">
+          <button onclick="syncPhotosFromCloudinary().then(()=>showToast('✅ Photos synchronisées'))" style="background:rgba(59,206,172,0.1);border:1px solid rgba(59,206,172,0.25);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--cyan);font-family:'Outfit',sans-serif;font-weight:700;cursor:pointer;">
+            🔄 Actualiser les photos
+          </button>
+        </div>
         <div class="cats-inner">
 
           <div class="section-title">🔧 Installations</div>
@@ -1584,6 +1593,18 @@ body {
 
   <div class="admin-body">
 
+    <!-- GESTION TECHNICIENS -->
+    <div class="admin-section">
+      <h3>👥 Gestion des Techniciens</h3>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+        Créez un compte par technicien. Chaque technicien aura son propre historique et favoris.
+      </div>
+      <button onclick="showAddUserModal()" style="width:100%;background:linear-gradient(135deg,#6C63FF,#4A43CC);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;cursor:pointer;margin-bottom:12px;">
+        ➕ Ajouter un technicien
+      </button>
+      <div id="userList"></div>
+    </div>
+
     <!-- IA Instructions section -->
     <div class="admin-section">
       <h3>🤖 Mettre à jour l'IA</h3>
@@ -1696,7 +1717,6 @@ body {
 // CONFIG
 // =====================
 const ADMIN_PWD = 'Vitalya@Admin2025';
-const TECH_PWD  = 'Vitalya2025';
 const CLOUDINARY_CLOUD = 'dtd2gudlg';
 const CLOUDINARY_PRESET = 'vitalya_uploads';
 
@@ -1704,27 +1724,81 @@ const CLOUDINARY_PRESET = 'vitalya_uploads';
 const PHOTOS_KEY = 'vitalya_photos';
 const DOCS_KEY   = 'vitalya_docs';
 const EXTRA_KEY  = 'vitalya_extra';
+const USERS_KEY  = 'vitalya_users';
+
+// Current logged-in user
+let currentUser = null;
+
+// =====================
+// USERS MANAGEMENT
+// =====================
+function getUsers() {
+  const saved = localStorage.getItem(USERS_KEY);
+  if (saved) return JSON.parse(saved);
+  // Default: one tech account for backward compat
+  return [{ id: 'tech-default', name: 'Technicien', username: 'tech', password: 'Vitalya2025', createdAt: '2025-01-01', active: true }];
+}
+function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+
+// Per-user storage keys
+function userHistKey(uid) { return `vitalya_hist_${uid}`; }
+function userFavKey(uid)  { return `vitalya_fav_${uid}`; }
 
 // =====================
 // LOGIN
 // =====================
-document.getElementById('loginPwd').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doLogin();
-});
+document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPwd').focus(); });
+document.getElementById('loginPwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
 function doLogin() {
+  const username = document.getElementById('loginUser').value.trim().toLowerCase();
   const pwd = document.getElementById('loginPwd').value.trim();
   const err = document.getElementById('loginError');
   err.style.display = 'none';
-  if (pwd === ADMIN_PWD) {
+
+  // Admin check
+  if ((username === 'admin' || username === '') && pwd === ADMIN_PWD) {
+    currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
     showScreen('adminScreen');
     renderAdminDocs();
-    renderAdminPhotos();
-  } else if (pwd === TECH_PWD) {
+    renderAdminCatList();
+    renderAdminStats();
+    renderIaHistory();
+    renderUserList();
+    return;
+  }
+
+  // Tech user check
+  const users = getUsers();
+  const user = users.find(u => u.active && u.username.toLowerCase() === username && u.password === pwd);
+  if (user) {
+    currentUser = user;
     showScreen('techScreen');
-  } else {
-    err.style.display = 'block';
-    document.getElementById('loginPwd').value = '';
+    // Update topbar with user name
+    document.getElementById('topbarUser').textContent = `👤 ${user.name}`;
+    // Load user-specific history & favs
+    loadUserData(user.id);
+    initTheme();
+    buildFichesList();
+    return;
+  }
+
+  err.style.display = 'block';
+  document.getElementById('loginPwd').value = '';
+}
+
+function loadUserData(uid) {
+  // Chat history per user
+  chatHistory = JSON.parse(localStorage.getItem(userHistKey(uid) + '_chat') || '[]');
+  // Sync photos from Cloudinary so tech sees all shared media
+  setTimeout(syncPhotosFromCloudinary, 500);
+  // Clear messages and show welcome
+  const msgs = document.getElementById('messages');
+  if (msgs) {
+    msgs.innerHTML = `<div class="msg"><div class="msg-av ai">🧪</div><div>
+      <div class="bub ai">👋 <strong>Bonjour ${currentUser.name} !</strong> Je suis votre Expert Vitalya.<br><br>
+      Posez-moi n'importe quelle question technique sur vos produits, dosages, installations et équipements ! 💪</div>
+      <div class="msg-time">Maintenant</div></div></div>`;
   }
 }
 
@@ -1734,9 +1808,168 @@ function showScreen(id) {
 }
 
 function logout() {
+  // Save chat history for current user before logout
+  if (currentUser && !currentUser.isAdmin) {
+    localStorage.setItem(userHistKey(currentUser.id) + '_chat', JSON.stringify(chatHistory));
+  }
+  currentUser = null;
+  chatHistory = [];
+  document.getElementById('loginUser').value = '';
   document.getElementById('loginPwd').value = '';
+  document.getElementById('loginError').style.display = 'none';
   showScreen('loginScreen');
 }
+
+// =====================
+// USER MANAGEMENT (ADMIN)
+// =====================
+function renderUserList() {
+  const users = getUsers();
+  const el = document.getElementById('userList');
+  if (!el) return;
+
+  if (!users.length) {
+    el.innerHTML = `<div style="font-size:13px;color:var(--muted);text-align:center;padding:16px;">Aucun technicien créé</div>`;
+    return;
+  }
+
+  el.innerHTML = users.map((u, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:8px;">
+      <div style="width:36px;height:36px;border-radius:10px;background:${u.active ? 'rgba(59,206,172,0.15)' : 'rgba(255,255,255,0.05)'};border:1px solid ${u.active ? 'rgba(59,206,172,0.3)' : 'rgba(255,255,255,0.1)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">
+        ${u.active ? '👤' : '🚫'}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:700;">${u.name}</div>
+        <div style="font-size:11px;color:var(--muted);">@${u.username} · ${u.active ? '<span style="color:var(--cyan)">Actif</span>' : '<span style="color:#FF6B75">Désactivé</span>'}</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="showEditUserModal(${i})" style="padding:6px 10px;background:rgba(59,206,172,0.1);border:1px solid rgba(59,206,172,0.25);border-radius:8px;color:var(--cyan);font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;">✏️</button>
+        <button onclick="toggleUserActive(${i})" style="padding:6px 10px;background:rgba(255,179,71,0.1);border:1px solid rgba(255,179,71,0.25);border-radius:8px;color:#FFB347;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;">${u.active ? '🔒' : '🔓'}</button>
+        <button onclick="deleteUser(${i})" style="padding:6px 10px;background:rgba(232,72,85,0.1);border:1px solid rgba(232,72,85,0.25);border-radius:8px;color:#FF6B75;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showAddUserModal() {
+  showModal(`
+    <div class="modal-title">👤 Nouveau technicien</div>
+    <input class="modal-input" id="newUserName" placeholder="Nom complet (ex: Jean Dupont)">
+    <input class="modal-input" id="newUserLogin" placeholder="Identifiant (ex: jean)" autocapitalize="none" style="text-transform:lowercase;">
+    <input class="modal-input" id="newUserPwd" type="password" placeholder="Mot de passe">
+    <div style="font-size:11px;color:var(--muted);margin:-6px 0 12px;line-height:1.5;">
+      L'identifiant est insensible à la casse. Choisissez un mot de passe fort.
+    </div>
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn modal-btn-primary" onclick="addUser()">✅ Créer</button>
+    </div>
+  `);
+  setTimeout(() => document.getElementById('newUserName')?.focus(), 100);
+}
+
+function addUser() {
+  const name = document.getElementById('newUserName').value.trim();
+  const username = document.getElementById('newUserLogin').value.trim().toLowerCase();
+  const password = document.getElementById('newUserPwd').value.trim();
+
+  if (!name || !username || !password) { showToast('⚠️ Remplissez tous les champs', true); return; }
+  if (password.length < 4) { showToast('⚠️ Mot de passe trop court (min 4 car.)', true); return; }
+
+  const users = getUsers();
+  if (users.find(u => u.username.toLowerCase() === username)) {
+    showToast('⚠️ Cet identifiant existe déjà', true); return;
+  }
+
+  users.push({
+    id: 'tech-' + Date.now(),
+    name, username, password,
+    createdAt: new Date().toLocaleDateString('fr-FR'),
+    active: true
+  });
+  saveUsers(users);
+  closeModal();
+  renderUserList();
+  showToast(`✅ Compte "${name}" créé !`);
+}
+
+function showEditUserModal(idx) {
+  const users = getUsers();
+  const u = users[idx];
+  if (!u) return;
+  showModal(`
+    <div class="modal-title">✏️ Modifier le technicien</div>
+    <input class="modal-input" id="editUserName" value="${u.name}" placeholder="Nom complet">
+    <input class="modal-input" id="editUserLogin" value="${u.username}" placeholder="Identifiant" autocapitalize="none">
+    <input class="modal-input" id="editUserPwd" type="password" placeholder="Nouveau mot de passe (laisser vide = inchangé)">
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn modal-btn-primary" onclick="saveEditUser(${idx})">✅ Enregistrer</button>
+    </div>
+  `);
+  setTimeout(() => document.getElementById('editUserName')?.focus(), 100);
+}
+
+function saveEditUser(idx) {
+  const name = document.getElementById('editUserName').value.trim();
+  const username = document.getElementById('editUserLogin').value.trim().toLowerCase();
+  const newPwd = document.getElementById('editUserPwd').value.trim();
+
+  if (!name || !username) { showToast('⚠️ Nom et identifiant requis', true); return; }
+
+  const users = getUsers();
+  // Check duplicate username (excluding current)
+  if (users.find((u, i) => i !== idx && u.username.toLowerCase() === username)) {
+    showToast('⚠️ Cet identifiant est déjà utilisé', true); return;
+  }
+
+  users[idx].name = name;
+  users[idx].username = username;
+  if (newPwd.length >= 4) users[idx].password = newPwd;
+  else if (newPwd.length > 0 && newPwd.length < 4) { showToast('⚠️ Mot de passe trop court', true); return; }
+
+  saveUsers(users);
+  closeModal();
+  renderUserList();
+  showToast(`✅ Compte "${name}" modifié`);
+}
+
+function toggleUserActive(idx) {
+  const users = getUsers();
+  users[idx].active = !users[idx].active;
+  saveUsers(users);
+  renderUserList();
+  showToast(users[idx].active ? '🔓 Compte activé' : '🔒 Compte désactivé');
+}
+
+function deleteUser(idx) {
+  const users = getUsers();
+  const name = users[idx].name;
+  showModal(`
+    <div class="modal-title" style="color:#FF6B75;">🗑 Supprimer le technicien ?</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
+      Le compte de <strong>${name}</strong> sera supprimé. Son historique de chat sera effacé.
+    </p>
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn" style="background:rgba(232,72,85,0.2);color:#FF6B75;border:1px solid rgba(232,72,85,0.4);" onclick="confirmDeleteUser(${idx})">🗑 Supprimer</button>
+    </div>
+  `);
+}
+
+function confirmDeleteUser(idx) {
+  const users = getUsers();
+  const uid = users[idx].id;
+  // Clean up user data
+  localStorage.removeItem(userHistKey(uid) + '_chat');
+  localStorage.removeItem(userFavKey(uid));
+  users.splice(idx, 1);
+  saveUsers(users);
+  closeModal();
+  renderUserList();
+  showToast('Compte supprimé');
+}
+
 
 // =====================
 // TAB NAVIGATION
@@ -1746,6 +1979,10 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   document.getElementById(tab + 'Page').classList.add('active');
+  // Refresh photos when opening fiches tab
+  if (tab === 'fiches') {
+    syncPhotosFromCloudinary();
+  }
 }
 
 // =====================
@@ -2823,15 +3060,78 @@ ta.addEventListener('keydown', e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDe
 // =====================
 // PHOTOS (Cloudinary)
 // =====================
-function getPhotos() { return JSON.parse(localStorage.getItem(PHOTOS_KEY) || '{}'); }
-function savePhotos(p) { localStorage.setItem(PHOTOS_KEY, JSON.stringify(p)); }
+// ─── SHARED PHOTO STORE (Cloudinary-backed) ──────────────────────────────────
+// Photos are stored on Cloudinary and visible to ALL users
+// We cache the index in localStorage for speed, but it's always synced
 
-function openLightbox(url, caption) {
+function getPhotos() {
+  return JSON.parse(localStorage.getItem(PHOTOS_KEY) || '{}');
+}
+function savePhotos(p) {
+  localStorage.setItem(PHOTOS_KEY, JSON.stringify(p));
+  // Broadcast update to other tabs/users on same device
+  try { localStorage.setItem(PHOTOS_KEY + '_ts', Date.now()); } catch(e) {}
+}
+
+// Sync photos index across users via Cloudinary tags
+// Each photo is tagged with its folder key (e.g. "vitalya_lv-branchement")
+async function syncPhotosFromCloudinary() {
+  const cats = getCats();
+  const photos = getPhotos();
+  let changed = false;
+
+  // For each category and sub-folder, fetch from Cloudinary
+  const keysToFetch = [];
+  cats.forEach(cat => {
+    keysToFetch.push(cat.id);
+    (cat.subs || []).forEach(sub => keysToFetch.push(`${cat.id}__${sub.id}`));
+  });
+
+  for (const key of keysToFetch) {
+    try {
+      const folder = `vitalya/${key}`;
+      const url = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/image/list/${encodeURIComponent(folder)}.json`;
+      const resp = await fetch(url);
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      if (!data.resources) continue;
+
+      const newPhotos = data.resources.map(r => {
+        // Check if we have an existing label for this resource
+        const existing = (photos[key] || []).find(p => p.public_id === r.public_id);
+        const isVideo = r.resource_type === 'video';
+        const ext = isVideo ? 'mp4' : 'jpg';
+        const baseUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/${r.resource_type}/upload/${r.public_id}`;
+        return {
+          url: isVideo ? `${baseUrl}.mp4` : `${baseUrl}.jpg`,
+          public_id: r.public_id,
+          label: existing?.label || r.public_id.split('/').pop(),
+          date: existing?.date || new Date(r.created_at).toLocaleDateString('fr-FR'),
+          isVideo: isVideo
+        };
+      });
+
+      if (JSON.stringify(newPhotos) !== JSON.stringify(photos[key])) {
+        photos[key] = newPhotos;
+        changed = true;
+      }
+    } catch(e) { /* folder might not exist yet */ }
+  }
+
+  if (changed) {
+    savePhotos(photos);
+    renderAdminCatList();
+    buildFichesList();
+    if (typeof renderAdminStats === 'function') renderAdminStats();
+  }
+}
+
+function openLightbox(url, caption, videoFlag) {
   const lb = document.getElementById('lightbox');
   const lbImg = document.getElementById('lightboxImg');
   const existVid = lb.querySelector('.lb-video');
   if (existVid) existVid.remove();
-  if (isVideo && isVideo(url)) {
+  if (isVideo(url, {isVideo: videoFlag})) {
     lbImg.style.display = 'none';
     const vid = document.createElement('video');
     vid.src = url; vid.controls = true; vid.autoplay = true;
@@ -3328,7 +3628,8 @@ function countPhotos(photos, catId) {
 }
 function countPhotosInSub(photos, catId, subId) { return (photos[`${catId}__${subId}`] || []).length; }
 
-function isVideo(url) {
+function isVideo(url, obj) {
+  if (obj && obj.isVideo) return true;
   return url && /\.(mp4|mov|avi|webm|mkv)$/i.test(url.split('?')[0]);
 }
 
@@ -3408,13 +3709,25 @@ async function handlePhotoUploadV2(files, catId, subId) {
   renderAdminCatList();
   if (typeof renderAdminStats === 'function') renderAdminStats();
   buildFichesList();
-  showToast(`✅ ${uploaded} photo${uploaded>1?'s':''} ajoutée${uploaded>1?'s':''}!`);
+  showToast(`✅ ${uploaded} média${uploaded>1?'s':''} uploadé${uploaded>1?'s':''}!`);
+  // Sync so other users see it immediately
+  setTimeout(syncPhotosFromCloudinary, 1000);
 }
 
-function deletePhotoV2(catId, subId, idx) {
+async function deletePhotoV2(catId, subId, idx) {
   const key = subId ? `${catId}__${subId}` : catId;
   const photos = getPhotos();
-  if (photos[key]) { photos[key].splice(idx, 1); savePhotos(photos); renderAdminCatList(); if(typeof renderAdminStats==='function')renderAdminStats(); showToast('Photo supprimée'); }
+  if (!photos[key]) return;
+  const photo = photos[key][idx];
+  photos[key].splice(idx, 1);
+  savePhotos(photos);
+  renderAdminCatList();
+  if (typeof renderAdminStats === 'function') renderAdminStats();
+  buildFichesList();
+  showToast('Média supprimé');
+  // Try to delete from Cloudinary via admin API (requires server — skip silently if fails)
+  // Note: Cloudinary deletion from browser requires a signed request via server
+  // The photo is removed from the local index but stays on Cloudinary CDN
 }
 
 function renamePhoto(catId, subId, idx) {
@@ -3616,10 +3929,10 @@ function openSubGallery(catId, subId, name, icon) {
   const grid = document.getElementById('photoGrid'); grid.innerHTML = '';
   if (!catPhotos.length) { grid.innerHTML='<div class="photo-empty"><div class="emoji">📭</div><p>Aucune photo.</p></div>'; return; }
   catPhotos.forEach(p => {
-    const item=document.createElement('div'); item.className='photo-item'; item.onclick=()=>openLightbox(p.url,p.label);
-    if (isVideo && isVideo(p.url)) {
-      const vid=document.createElement('video'); vid.src=p.url; vid.controls=true; vid.style.cssText='width:100%;height:100%;object-fit:cover;'; item.appendChild(vid);
-      const badge=document.createElement('div'); badge.style.cssText='position:absolute;top:6px;left:6px;font-size:16px;pointer-events:none;'; badge.textContent='▶️'; item.appendChild(badge);
+    const item=document.createElement('div'); item.className='photo-item'; item.onclick=()=>openLightbox(p.url,p.label,p.isVideo);
+    if (isVideo(p.url, p)) {
+      const vid=document.createElement('video'); vid.src=p.url; vid.style.cssText='width:100%;height:100%;object-fit:cover;'; vid.muted=true; vid.preload='metadata'; item.appendChild(vid);
+      const badge=document.createElement('div'); badge.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;pointer-events:none;background:rgba(0,0,0,0.4);border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;'; badge.textContent='▶️'; item.appendChild(badge);
     } else {
       const img=document.createElement('img'); img.src=p.url; img.loading='lazy'; item.appendChild(img);
     }
@@ -3873,6 +4186,7 @@ renderAdminDocs();
 renderAdminStats();
 renderIaHistory();
 renderAdminCatList();
+renderUserList();
 buildFichesList();
 
 // =====================
@@ -4123,13 +4437,13 @@ function renderPhotoGrid(photos) {
 // PARTAGE DE PHOTO
 // =====================
 let currentLightboxUrl = '';
-function openLightbox(url, caption) {
+function openLightbox(url, caption, videoFlag) {
   currentLightboxUrl = url;
   const lb = document.getElementById('lightbox');
   const lbImg = document.getElementById('lightboxImg');
   const existVid = lb.querySelector('.lb-video');
   if (existVid) existVid.remove();
-  if (isVideo && isVideo(url)) {
+  if (isVideo(url, {isVideo: videoFlag})) {
     lbImg.style.display = 'none';
     const vid = document.createElement('video');
     vid.src = url; vid.controls = true; vid.autoplay = true;
