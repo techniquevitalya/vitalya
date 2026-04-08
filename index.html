@@ -84,7 +84,137 @@ body.light-mode .topbar-logo { background: linear-gradient(135deg, #0A2463, var(
 body.light-mode .theme-toggle { background: rgba(0,0,0,0.08); }
 .theme-toggle:active { transform: scale(0.9); }
 
-/* ==================== TIMER TEMPS DE CONTACT ==================== */
+/* ==================== GESTIONNAIRE FICHES ADMIN ==================== */
+.admin-cat-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.admin-cat-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 14px; cursor: pointer;
+  transition: background 0.2s;
+}
+.admin-cat-header:active { background: rgba(255,255,255,0.06); }
+.admin-cat-icon-badge {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+  background: rgba(59,206,172,0.15); border: 1px solid rgba(59,206,172,0.3);
+}
+.admin-cat-info { flex: 1; min-width: 0; }
+.admin-cat-name { font-size: 14px; font-weight: 700; }
+.admin-cat-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.admin-cat-chevron { font-size: 18px; color: var(--muted); transition: transform 0.2s; }
+.admin-cat-chevron.open { transform: rotate(90deg); }
+.admin-cat-actions {
+  display: flex; gap: 6px; padding: 0 14px 12px;
+}
+.admin-cat-body {
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding: 12px 14px;
+  display: none;
+}
+.admin-cat-body.open { display: block; }
+
+.admin-action-btn {
+  flex: 1; padding: 9px 6px; border: none; border-radius: 10px;
+  font-size: 12px; font-weight: 700; font-family: 'Outfit', sans-serif;
+  cursor: pointer; transition: all 0.2s; text-align: center;
+}
+.admin-action-btn:active { transform: scale(0.96); }
+.btn-rename { background: rgba(59,206,172,0.12); color: var(--cyan); border: 1px solid rgba(59,206,172,0.3); }
+.btn-add-sub { background: rgba(108,99,255,0.12); color: #8B7FFF; border: 1px solid rgba(108,99,255,0.3); }
+.btn-add-photo { background: rgba(244,162,97,0.12); color: var(--gold); border: 1px solid rgba(244,162,97,0.3); }
+.btn-delete-cat { background: rgba(232,72,85,0.1); color: #FF6B75; border: 1px solid rgba(232,72,85,0.25); }
+
+/* Sous-dossiers */
+.admin-subfolder {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px; margin-bottom: 8px;
+  overflow: hidden;
+}
+.admin-subfolder-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+}
+.admin-subfolder-name { flex: 1; font-size: 13px; font-weight: 600; }
+.admin-subfolder-meta { font-size: 11px; color: var(--muted); }
+.admin-subfolder-actions { display: flex; gap: 6px; }
+.sub-btn {
+  padding: 5px 10px; border: none; border-radius: 8px;
+  font-size: 11px; font-weight: 700; font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+}
+.sub-btn-photo { background: rgba(244,162,97,0.15); color: var(--gold); }
+.sub-btn-rename { background: rgba(59,206,172,0.12); color: var(--cyan); }
+.sub-btn-delete { background: rgba(232,72,85,0.1); color: #FF6B75; }
+
+/* Grille photos admin */
+.admin-photo-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-top: 10px;
+}
+.admin-photo-thumb {
+  aspect-ratio: 1; border-radius: 10px; overflow: hidden;
+  position: relative; background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.admin-photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.admin-photo-del {
+  position: absolute; top: 4px; right: 4px;
+  background: rgba(0,0,0,0.75); border: none; border-radius: 6px;
+  width: 24px; height: 24px; color: #fff; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.admin-photo-label-edit {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,0.6); padding: 4px 6px;
+  font-size: 10px; color: #fff; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Modal */
+.modal-title {
+  font-size: 17px; font-weight: 800; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.modal-input {
+  width: 100%; background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 12px; padding: 13px 14px;
+  font-size: 15px; color: #fff; font-family: 'Outfit', sans-serif;
+  outline: none; margin-bottom: 12px; -webkit-appearance: none;
+}
+.modal-input:focus { border-color: var(--cyan); }
+.modal-btn-row { display: flex; gap: 8px; margin-top: 4px; }
+.modal-btn {
+  flex: 1; padding: 13px; border: none; border-radius: 12px;
+  font-size: 15px; font-weight: 700; font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+}
+.modal-btn-primary { background: linear-gradient(135deg, var(--cyan), #2BA893); color: var(--primary); }
+.modal-btn-cancel { background: rgba(255,255,255,0.08); color: var(--muted); }
+.emoji-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.emoji-opt {
+  width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05); font-size: 20px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: all 0.15s;
+}
+.emoji-opt.selected { border-color: var(--cyan); background: rgba(59,206,172,0.15); }
+.upload-prog-mini {
+  background: rgba(255,255,255,0.06); border-radius: 8px;
+  height: 5px; overflow: hidden; margin: 8px 0; display: none;
+}
+.upload-prog-mini-fill {
+  height: 100%; background: var(--cyan); border-radius: 8px;
+  width: 0%; transition: width 0.3s;
+}
+</style>
 .timer-box {
   display: none;
   background: linear-gradient(135deg, rgba(59,206,172,0.12), rgba(10,36,99,0.15));
@@ -1507,30 +1637,30 @@ body {
       <div id="docList"></div>
     </div>
 
-    <!-- Photos section -->
-    <div class="admin-section">
-      <h3>📸 Ajouter des photos</h3>
-      <select class="photo-cat-select" id="photoCatSel">
-        <option value="lv-branchement">🔧 Branchement Lave-Vaisselle</option>
-        <option value="lv-installation">⚙️ Installation Lave-Vaisselle</option>
-        <option value="doseurs">💧 Installation Doseurs</option>
-        <option value="produits">🏷️ Produits & Étiquettes</option>
-        <option value="schemas">📐 Schémas Techniques</option>
-        <option value="securite">⚠️ Sécurité & EPI</option>
-      </select>
-      <button class="btn-upload-photo" onclick="document.getElementById('photoFileInput').click()">
-        📷 Sélectionner des photos
+    <!-- GESTIONNAIRE DE FICHES -->
+    <div class="admin-section" id="fichesManagerSection">
+      <h3>📁 Gestionnaire de Fiches & Photos</h3>
+
+      <!-- Bouton ajouter catégorie -->
+      <button onclick="showAddCatModal()" style="width:100%;background:linear-gradient(135deg,var(--cyan),#2BA893);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;color:var(--primary);font-family:'Outfit',sans-serif;cursor:pointer;margin-bottom:14px;">
+        ➕ Ajouter une catégorie
       </button>
-      <input type="file" id="photoFileInput" class="file-input" accept="image/*" multiple onchange="handlePhotoUpload(this.files)">
-      <div class="prog-wrap" id="photoProg">
-        <div class="prog-label"><span id="photoProgLabel">Upload...</span><span id="photoProgPct">0%</span></div>
-        <div class="prog-track"><div class="prog-fill" id="photoProgFill"></div></div>
-      </div>
-      <div class="photo-admin-grid" id="adminPhotoGrid"></div>
+
+      <!-- Liste des catégories gérables -->
+      <div id="adminCatList"></div>
     </div>
 
   </div>
 </div>
+
+<!-- ==================== MODAL AJOUT CATÉGORIE ==================== -->
+<div id="modalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:3000;align-items:center;justify-content:center;">
+  <div id="modalBox" style="background:#0D1B35;border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:24px;width:calc(100% - 48px);max-width:380px;max-height:80vh;overflow-y:auto;">
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+
 
 <!-- LIGHTBOX -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
@@ -3101,6 +3231,369 @@ function doSearch(q) {
 }
 
 
+// =============================================
+// GESTIONNAIRE DE FICHES & CATÉGORIES
+// =============================================
+const CATS_KEY = 'vitalya_cats_v2';
+
+const DEFAULT_CATS = [
+  { id: 'lv-branchement', icon: '🔧', name: 'Branchement Lave-Vaisselle', subs: [] },
+  { id: 'lv-installation', icon: '⚙️', name: 'Installation Lave-Vaisselle', subs: [] },
+  { id: 'doseurs', icon: '💧', name: 'Installation Doseurs', subs: [] },
+  { id: 'postes', icon: '🚿', name: 'Postes de Désinfection', subs: [] },
+  { id: 'produits', icon: '🏷️', name: 'Produits & Étiquettes', subs: [] },
+  { id: 'dosages-sodexo', icon: '🍽️', name: 'Grille Dosage Sodexo', subs: [] },
+  { id: 'dosages-elior', icon: '🏢', name: 'Protocoles Elior', subs: [] },
+  { id: 'tableau-gouttes', icon: '🔬', name: 'Tableau des Gouttes 2019', subs: [] },
+  { id: 'schemas', icon: '📐', name: 'Schémas Techniques', subs: [] },
+  { id: 'securite', icon: '⚠️', name: 'Sécurité & EPI', subs: [] },
+];
+
+function getCats() {
+  const saved = localStorage.getItem(CATS_KEY);
+  if (saved) return JSON.parse(saved);
+  const cats = DEFAULT_CATS.map(c => ({ ...c, subs: [] }));
+  saveCats(cats);
+  return cats;
+}
+function saveCats(cats) { localStorage.setItem(CATS_KEY, JSON.stringify(cats)); }
+
+function renderAdminCatList() {
+  const cats = getCats();
+  const photos = getPhotos();
+  const el = document.getElementById('adminCatList');
+  if (!el) return;
+
+  el.innerHTML = cats.map((cat, ci) => {
+    const photoCount = countPhotos(photos, cat.id);
+    const subCount = (cat.subs || []).length;
+    return `
+      <div class="admin-cat-item" id="admin-cat-${cat.id}">
+        <div class="admin-cat-header" onclick="toggleAdminCat('${cat.id}')">
+          <div class="admin-cat-icon-badge">${cat.icon}</div>
+          <div class="admin-cat-info">
+            <div class="admin-cat-name">${cat.name}</div>
+            <div class="admin-cat-meta">${photoCount} photo${photoCount!==1?'s':''} · ${subCount} sous-dossier${subCount!==1?'s':''}</div>
+          </div>
+          <div class="admin-cat-chevron" id="chevron-${cat.id}">›</div>
+        </div>
+        <div class="admin-cat-body" id="body-${cat.id}">
+          <div class="admin-cat-actions">
+            <button class="admin-action-btn btn-rename" onclick="showRenameModal('${cat.id}')">✏️ Renommer</button>
+            <button class="admin-action-btn btn-add-sub" onclick="showAddSubModal('${cat.id}')">📂 Sous-dossier</button>
+            <button class="admin-action-btn btn-add-photo" onclick="triggerPhotoUpload('${cat.id}', null)">📷 Photo</button>
+            ${ci >= DEFAULT_CATS.length ? `<button class="admin-action-btn btn-delete-cat" onclick="deleteCat('${cat.id}')">🗑</button>` : ''}
+          </div>
+          ${(cat.subs || []).map((sub, si) => {
+            const subPhotos = countPhotosInSub(photos, cat.id, sub.id);
+            return `
+              <div class="admin-subfolder">
+                <div class="admin-subfolder-header">
+                  <span style="font-size:16px;">${sub.icon||'📁'}</span>
+                  <div class="admin-subfolder-name">${sub.name}</div>
+                  <div class="admin-subfolder-meta">${subPhotos} photo${subPhotos!==1?'s':''}</div>
+                  <div class="admin-subfolder-actions">
+                    <button class="sub-btn sub-btn-photo" onclick="triggerPhotoUpload('${cat.id}','${sub.id}')">📷</button>
+                    <button class="sub-btn sub-btn-rename" onclick="showRenameSubModal('${cat.id}',${si})">✏️</button>
+                    <button class="sub-btn sub-btn-delete" onclick="deleteSub('${cat.id}',${si})">🗑</button>
+                  </div>
+                </div>
+                ${renderSubPhotoGrid(photos, cat.id, sub.id)}
+              </div>`;
+          }).join('')}
+          ${renderCatPhotoGrid(photos, cat.id)}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function countPhotos(photos, catId) {
+  const direct = (photos[catId] || []).length;
+  const fromSubs = Object.keys(photos).filter(k => k.startsWith(catId + '__')).reduce((a, k) => a + (photos[k]||[]).length, 0);
+  return direct + fromSubs;
+}
+function countPhotosInSub(photos, catId, subId) { return (photos[`${catId}__${subId}`] || []).length; }
+
+function renderCatPhotoGrid(photos, catId) {
+  const catPhotos = photos[catId] || [];
+  if (!catPhotos.length) return `<div style="font-size:12px;color:var(--muted);padding:8px 0 4px;">Aucune photo directe — appuyez 📷 pour en ajouter</div>`;
+  return `<div style="margin-top:10px;"><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">📸 Photos directes</div>
+    <div class="admin-photo-grid">${catPhotos.map((p,i) => `
+      <div class="admin-photo-thumb">
+        <img src="${p.url}" loading="lazy">
+        <button class="admin-photo-del" onclick="deletePhotoV2('${catId}',null,${i})">✕</button>
+        <div class="admin-photo-label-edit" onclick="renamePhoto('${catId}',null,${i})">${p.label||'📝'}</div>
+      </div>`).join('')}
+    </div></div>`;
+}
+
+function renderSubPhotoGrid(photos, catId, subId) {
+  const key = `${catId}__${subId}`;
+  const subPhotos = photos[key] || [];
+  if (!subPhotos.length) return `<div style="font-size:12px;color:var(--muted);padding:6px 12px 10px;">Aucune photo — appuyez 📷 pour en ajouter</div>`;
+  return `<div class="admin-photo-grid" style="padding:0 12px 12px;">${subPhotos.map((p,i) => `
+    <div class="admin-photo-thumb">
+      <img src="${p.url}" loading="lazy">
+      <button class="admin-photo-del" onclick="deletePhotoV2('${catId}','${subId}',${i})">✕</button>
+      <div class="admin-photo-label-edit" onclick="renamePhoto('${catId}','${subId}',${i})">${p.label||'📝'}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function toggleAdminCat(catId) {
+  const body = document.getElementById(`body-${catId}`);
+  const chev = document.getElementById(`chevron-${catId}`);
+  if (!body) return;
+  const isOpen = body.classList.toggle('open');
+  if (chev) chev.classList.toggle('open', isOpen);
+}
+
+function triggerPhotoUpload(catId, subId) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
+  input.onchange = (e) => handlePhotoUploadV2(e.target.files, catId, subId);
+  input.click();
+}
+
+async function handlePhotoUploadV2(files, catId, subId) {
+  if (!files || !files.length) return;
+  const key = subId ? `${catId}__${subId}` : catId;
+  const photos = getPhotos();
+  if (!photos[key]) photos[key] = [];
+  showToast(`⏳ Upload de ${files.length} photo${files.length>1?'s':''}...`);
+  let uploaded = 0;
+  for (const file of files) {
+    try {
+      const fd = new FormData();
+      fd.append('file', file); fd.append('upload_preset', CLOUDINARY_PRESET);
+      fd.append('folder', `vitalya/${key}`);
+      const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method:'POST', body:fd });
+      const data = await resp.json();
+      if (data.secure_url) {
+        photos[key].push({ url: data.secure_url, label: file.name.replace(/\.[^.]+$/,''), date: new Date().toLocaleDateString('fr-FR') });
+        uploaded++;
+      }
+    } catch(e) { console.error(e); }
+  }
+  savePhotos(photos);
+  renderAdminCatList();
+  if (typeof renderAdminStats === 'function') renderAdminStats();
+  buildFichesList();
+  showToast(`✅ ${uploaded} photo${uploaded>1?'s':''} ajoutée${uploaded>1?'s':''}!`);
+}
+
+function deletePhotoV2(catId, subId, idx) {
+  const key = subId ? `${catId}__${subId}` : catId;
+  const photos = getPhotos();
+  if (photos[key]) { photos[key].splice(idx, 1); savePhotos(photos); renderAdminCatList(); if(typeof renderAdminStats==='function')renderAdminStats(); showToast('Photo supprimée'); }
+}
+
+function renamePhoto(catId, subId, idx) {
+  const key = subId ? `${catId}__${subId}` : catId;
+  const photos = getPhotos();
+  const current = photos[key]?.[idx]?.label || '';
+  showModal(`<div class="modal-title">✏️ Renommer la photo</div>
+    <input class="modal-input" id="photoLabelInput" value="${current}" placeholder="Nom de la photo...">
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn modal-btn-primary" onclick="savePhotoLabel('${catId}','${subId||''}',${idx})">Enregistrer</button>
+    </div>`);
+  setTimeout(() => document.getElementById('photoLabelInput')?.focus(), 100);
+}
+
+function savePhotoLabel(catId, subId, idx) {
+  const key = subId ? `${catId}__${subId}` : catId;
+  const newLabel = document.getElementById('photoLabelInput').value.trim();
+  const photos = getPhotos();
+  if (photos[key]?.[idx]) { photos[key][idx].label = newLabel; savePhotos(photos); renderAdminCatList(); closeModal(); showToast('✅ Nom modifié'); }
+}
+
+const ICON_OPTIONS = ['📁','🔧','⚙️','💧','🏷️','📐','⚠️','🍽️','🏢','🔬','📸','🚿','🧹','🔩','📋','🗂️','🧪','🛠️','💊','🌡️'];
+
+function showAddCatModal() {
+  showModal(`<div class="modal-title">➕ Nouvelle catégorie</div>
+    <input class="modal-input" id="newCatName" placeholder="Nom de la catégorie..." maxlength="40">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Icône</div>
+    <div class="emoji-picker">${ICON_OPTIONS.map((e,i)=>`<div class="emoji-opt${i===0?' selected':''}" onclick="selectEmoji(this,'${e}')" data-emoji="${e}">${e}</div>`).join('')}</div>
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn modal-btn-primary" onclick="addCat()">➕ Ajouter</button>
+    </div>`);
+  setTimeout(() => document.getElementById('newCatName')?.focus(), 100);
+}
+
+function selectEmoji(el) {
+  document.querySelectorAll('.emoji-opt').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function addCat() {
+  const name = document.getElementById('newCatName').value.trim();
+  if (!name) { showToast('⚠️ Entrez un nom', true); return; }
+  const icon = document.querySelector('.emoji-opt.selected')?.dataset.emoji || '📁';
+  const cats = getCats();
+  cats.push({ id: 'custom-' + Date.now(), icon, name, subs: [] });
+  saveCats(cats); closeModal(); renderAdminCatList(); buildFichesList();
+  showToast(`✅ Catégorie "${name}" créée !`);
+}
+
+function deleteCat(catId) {
+  showModal(`<div class="modal-title" style="color:#FF6B75;">🗑 Supprimer la catégorie ?</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">Toutes les photos seront supprimées. Action irréversible.</p>
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn" style="background:rgba(232,72,85,0.2);color:#FF6B75;" onclick="confirmDeleteCat('${catId}')">🗑 Supprimer</button>
+    </div>`);
+}
+
+function confirmDeleteCat(catId) {
+  const cats = getCats().filter(c => c.id !== catId); saveCats(cats);
+  const photos = getPhotos();
+  Object.keys(photos).filter(k => k === catId || k.startsWith(catId+'__')).forEach(k => delete photos[k]);
+  savePhotos(photos); closeModal(); renderAdminCatList(); if(typeof renderAdminStats==='function')renderAdminStats(); buildFichesList();
+  showToast('Catégorie supprimée');
+}
+
+function showRenameModal(catId) {
+  const cat = getCats().find(c => c.id === catId); if (!cat) return;
+  showModal(`<div class="modal-title">✏️ Renommer la catégorie</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Icône</div>
+    <div class="emoji-picker">${ICON_OPTIONS.map(e=>`<div class="emoji-opt${e===cat.icon?' selected':''}" onclick="selectEmoji(this)" data-emoji="${e}">${e}</div>`).join('')}</div>
+    <input class="modal-input" id="renameCatInput" value="${cat.name}" placeholder="Nouveau nom...">
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn modal-btn-primary" onclick="saveCatRename('${catId}')">✅ Enregistrer</button>
+    </div>`);
+  setTimeout(() => document.getElementById('renameCatInput')?.focus(), 100);
+}
+
+function saveCatRename(catId) {
+  const newName = document.getElementById('renameCatInput').value.trim();
+  if (!newName) { showToast('⚠️ Entrez un nom', true); return; }
+  const icon = document.querySelector('.emoji-opt.selected')?.dataset.emoji;
+  const cats = getCats(); const cat = cats.find(c => c.id === catId);
+  if (cat) { cat.name = newName; if(icon) cat.icon = icon; saveCats(cats); closeModal(); renderAdminCatList(); buildFichesList(); showToast('✅ Renommée'); }
+}
+
+function showAddSubModal(catId) {
+  showModal(`<div class="modal-title">📂 Nouveau sous-dossier</div>
+    <input class="modal-input" id="newSubName" placeholder="Nom du sous-dossier..." maxlength="40">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Icône</div>
+    <div class="emoji-picker">${ICON_OPTIONS.map((e,i)=>`<div class="emoji-opt${i===0?' selected':''}" onclick="selectEmoji(this)" data-emoji="${e}">${e}</div>`).join('')}</div>
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn modal-btn-primary" onclick="addSub('${catId}')">➕ Créer</button>
+    </div>`);
+  setTimeout(() => document.getElementById('newSubName')?.focus(), 100);
+}
+
+function addSub(catId) {
+  const name = document.getElementById('newSubName').value.trim();
+  if (!name) { showToast('⚠️ Entrez un nom', true); return; }
+  const icon = document.querySelector('.emoji-opt.selected')?.dataset.emoji || '📁';
+  const cats = getCats(); const cat = cats.find(c => c.id === catId);
+  if (cat) {
+    if (!cat.subs) cat.subs = [];
+    cat.subs.push({ id: 'sub-' + Date.now(), icon, name });
+    saveCats(cats); closeModal(); renderAdminCatList();
+    setTimeout(() => { document.getElementById(`body-${catId}`)?.classList.add('open'); document.getElementById(`chevron-${catId}`)?.classList.add('open'); }, 100);
+    showToast(`✅ Sous-dossier "${name}" créé !`);
+  }
+}
+
+function showRenameSubModal(catId, subIdx) {
+  const cats = getCats(); const cat = cats.find(c => c.id === catId); const sub = cat?.subs?.[subIdx]; if (!sub) return;
+  showModal(`<div class="modal-title">✏️ Renommer le sous-dossier</div>
+    <div class="emoji-picker">${ICON_OPTIONS.map(e=>`<div class="emoji-opt${e===sub.icon?' selected':''}" onclick="selectEmoji(this)" data-emoji="${e}">${e}</div>`).join('')}</div>
+    <input class="modal-input" id="renameSubInput" value="${sub.name}" placeholder="Nouveau nom...">
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn modal-btn-primary" onclick="saveSubRename('${catId}',${subIdx})">✅ Enregistrer</button>
+    </div>`);
+  setTimeout(() => document.getElementById('renameSubInput')?.focus(), 100);
+}
+
+function saveSubRename(catId, subIdx) {
+  const newName = document.getElementById('renameSubInput').value.trim(); if (!newName) { showToast('⚠️ Entrez un nom', true); return; }
+  const icon = document.querySelector('.emoji-opt.selected')?.dataset.emoji;
+  const cats = getCats(); const cat = cats.find(c => c.id === catId);
+  if (cat?.subs?.[subIdx]) { cat.subs[subIdx].name = newName; if(icon) cat.subs[subIdx].icon = icon; saveCats(cats); closeModal(); renderAdminCatList(); showToast('✅ Renommé'); }
+}
+
+function deleteSub(catId, subIdx) {
+  const cats = getCats(); const cat = cats.find(c => c.id === catId);
+  if (!cat?.subs?.[subIdx]) return;
+  const subId = cat.subs[subIdx].id;
+  showModal(`<div class="modal-title" style="color:#FF6B75;">🗑 Supprimer le sous-dossier ?</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Toutes les photos seront supprimées.</p>
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn" style="background:rgba(232,72,85,0.2);color:#FF6B75;" onclick="confirmDeleteSub('${catId}',${subIdx},'${subId}')">🗑 Supprimer</button>
+    </div>`);
+}
+
+function confirmDeleteSub(catId, subIdx, subId) {
+  const cats = getCats(); const cat = cats.find(c => c.id === catId);
+  if (cat?.subs) { cat.subs.splice(subIdx, 1); saveCats(cats); const photos = getPhotos(); delete photos[`${catId}__${subId}`]; savePhotos(photos); closeModal(); renderAdminCatList(); showToast('Supprimé'); }
+}
+
+function showModal(html) { document.getElementById('modalContent').innerHTML = html; document.getElementById('modalOverlay').style.display = 'flex'; }
+function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+document.getElementById('modalOverlay')?.addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+
+function buildFichesList() {
+  const cats = getCats(); const photos = getPhotos();
+  const container = document.getElementById('fichesList'); if (!container) return;
+  const staticFiches = container.querySelector('.cats-inner'); if (!staticFiches) return;
+  const oldDyn = staticFiches.querySelector('.dynamic-cats-section'); if (oldDyn) oldDyn.remove();
+  const catsWithPhotos = cats.filter(c => countPhotos(photos, c.id) > 0);
+  if (!catsWithPhotos.length) return;
+  const dynSection = document.createElement('div'); dynSection.className = 'dynamic-cats-section';
+  dynSection.innerHTML = `<div class="section-title" style="margin-top:20px;">📸 Galeries Photos</div>` +
+    cats.map(cat => {
+      const total = countPhotos(photos, cat.id); if (!total) return '';
+      return `<div class="cat-card" onclick="openDynamicGallery('${cat.id}')">
+        <div class="cat-icon blue">${cat.icon}</div>
+        <div class="cat-info"><div class="cat-name">${cat.name}</div><div class="cat-count">${total} photo${total!==1?'s':''}</div></div>
+        <div class="cat-arrow">›</div></div>`;
+    }).join('');
+  staticFiches.appendChild(dynSection);
+}
+
+function openDynamicGallery(catId) {
+  const cats = getCats(); const cat = cats.find(c => c.id === catId); if (!cat) return;
+  const photos = getPhotos();
+  const subsWithPhotos = (cat.subs||[]).filter(s => countPhotosInSub(photos, catId, s.id) > 0);
+  const directPhotos = photos[catId] || [];
+  if (subsWithPhotos.length > 0) {
+    document.getElementById('fichesList').style.display = 'none';
+    document.getElementById('ficheDetail').style.display = 'flex';
+    document.getElementById('ficheTitle').textContent = `${cat.icon} ${cat.name}`;
+    document.getElementById('ficheSubtitle').textContent = 'Choisir un dossier';
+    let html = '';
+    if (directPhotos.length) html += `<div class="cat-card" style="margin-bottom:10px" onclick="openSubGallery('${catId}','__direct__','${cat.name}','${cat.icon}')"><div class="cat-icon blue">📸</div><div class="cat-info"><div class="cat-name">Photos générales</div><div class="cat-count">${directPhotos.length} photo${directPhotos.length!==1?'s':''}</div></div><div class="cat-arrow">›</div></div>`;
+    subsWithPhotos.forEach(sub => { const n=countPhotosInSub(photos,catId,sub.id); html+=`<div class="cat-card" style="margin-bottom:10px" onclick="openSubGallery('${catId}','${sub.id}','${sub.name}','${sub.icon||'📁'}')"><div class="cat-icon blue">${sub.icon||'📁'}</div><div class="cat-info"><div class="cat-name">${sub.name}</div><div class="cat-count">${n} photo${n!==1?'s':''}</div></div><div class="cat-arrow">›</div></div>`; });
+    document.getElementById('ficheContent').innerHTML = html;
+  } else { openSubGallery(catId, '__direct__', cat.name, cat.icon); }
+}
+
+function openSubGallery(catId, subId, name, icon) {
+  const photos = getPhotos(); const key = subId==='__direct__' ? catId : `${catId}__${subId}`;
+  const catPhotos = photos[key] || [];
+  document.getElementById('ficheDetail').style.display = 'none';
+  const gv = document.getElementById('galleryView'); gv.style.display = 'flex';
+  document.getElementById('galleryTitle').textContent = `${icon} ${name}`;
+  document.getElementById('galleryCount').textContent = `${catPhotos.length} photo${catPhotos.length!==1?'s':''}`;
+  const grid = document.getElementById('photoGrid'); grid.innerHTML = '';
+  if (!catPhotos.length) { grid.innerHTML='<div class="photo-empty"><div class="emoji">📭</div><p>Aucune photo.</p></div>'; return; }
+  catPhotos.forEach(p => {
+    const item=document.createElement('div'); item.className='photo-item'; item.onclick=()=>openLightbox(p.url,p.label);
+    const img=document.createElement('img'); img.src=p.url; img.loading='lazy'; item.appendChild(img);
+    if(p.label){const lbl=document.createElement('div');lbl.className='photo-label';lbl.textContent=p.label;item.appendChild(lbl);}
+    grid.appendChild(item);
+  });
+}
+
 const IA_INSTRUCTIONS_KEY = 'vitalya_ia_instructions';
 
 function getIaInstructions() {
@@ -3345,6 +3838,8 @@ function showToast(msg, err=false) {
 renderAdminDocs();
 renderAdminStats();
 renderIaHistory();
+renderAdminCatList();
+buildFichesList();
 
 // =====================
 // FAVORIS
