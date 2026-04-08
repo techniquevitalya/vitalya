@@ -1083,33 +1083,68 @@ body {
         <label class="calc-vol-label">Produit</label>
         <select class="calc-select" id="calcProduit" onchange="updateCalcModes()">
           <option value="">— Choisir un produit —</option>
-          <option value="suma-bac-d10">🦠 Suma Bac D10</option>
-          <option value="suma-chlor-d44">🥦 Suma Chlor D4.4</option>
-          <option value="suma-calc-d5">🍽️ Suma Calc D5</option>
-          <option value="suma-star-d1">⭐ Suma Star D1</option>
-          <option value="suma-grill-d9">🔥 Suma Grill D9</option>
-          <option value="suma-frit-d91">🛢️ Suma Frit D9.1 (friteuse)</option>
-          <option value="nova-l6">🔬 Suma Nova L6 SafePack</option>
-          <option value="revoflow-p2">💧 Revoflow Max P2</option>
-          <option value="clax-100">🧺 Clax 100</option>
-          <option value="clax-build">👕 Clax Build</option>
-          <option value="clax-bright">✨ Clax Bright</option>
-          <option value="clax-mild">🌿 Clax Mild</option>
-          <option value="taski-jontec300">🧹 TASKI Jontec 300</option>
-          <option value="taski-sprint200">🪟 TASKI Sprint 200</option>
-          <option value="taski-sani4in1">🚽 TASKI Sani 4in1</option>
-          <option value="taski-sani-calc">🧲 TASKI Sani Calc</option>
-          <option value="taski-tapi">🟫 TASKI Tapi Shampoo</option>
-          <option value="oxivir">🟡 Oxivir Excel</option>
-          <option value="sure-cleaner">🟢 Sure Cleaner</option>
-          <optgroup label="── Room Care Diversey ──">
-          <option value="rc-r1plus">🚽 Room Care R1-plus Pur-Eco (concentré)</option>
-          <option value="rc-r2plus-eco">🧴 Room Care R2-plus Pur-Eco (concentré)</option>
-          <option value="rc-r2plus">🧴 Room Care R2-plus (concentré fort)</option>
-          <option value="rc-r3plus">🪟 Room Care R3-plus Pur-Eco (concentré)</option>
-          <option value="rc-r5plus">🌸 Room Care R5-plus / R5.1-plus (concentré)</option>
-          <option value="rc-r6plus">🚽 Room Care R6-plus (extra fort concentré)</option>
-          <option value="rc-r10plus">🧹 Room Care R10-plus Pur-Eco (sols)</option>
+
+          <optgroup label="🍽️ ── MACHINE LAVE-VAISSELLE ──">
+            <option value="nova-l6">Nova L6 SafePack — Détergent LV</option>
+            <option value="nova-l6-pec">Nova L6 Pur-Eco — Détergent LV</option>
+            <option value="select-a7">Select A7 Pur-Eco — Rinçage LV</option>
+            <option value="special-l4">Special L4 — Détergent LV</option>
+            <option value="special-l4-pec">Special L4 Pur-Eco — Détergent LV</option>
+            <option value="revoflow-p1">Revoflow Max P1 — Détergent LV poudre</option>
+            <option value="revoflow-p2">Revoflow Max P2 Pur-Eco — Détergent LV poudre</option>
+            <option value="ultra-l2">Ultra L2 — Détergent LV</option>
+            <option value="lima-l3">Lima L3 — Détergent LV</option>
+            <option value="jade-l8">Jade L8 Pur-Eco — Détergent LV</option>
+            <option value="tera-l56">Tera L56 — Détergent LV</option>
+            <option value="combi-la6">Combi+ LA6 — Détergent LV combiné</option>
+            <option value="suma-calc-d5">Suma Calc D5 — Détartrage LV</option>
+            <option value="top-m40">Top M40 — Pastilles LV</option>
+          </optgroup>
+
+          <optgroup label="🧴 ── LAVAGE MANUEL ──">
+            <option value="suma-bac-d10">Suma Bac D10 — Désinfectant</option>
+            <option value="suma-star-d1">Suma Star D1 — Lavage manuel</option>
+            <option value="suma-chlor-d44">Suma Chlor D4.4 — Désinfectant légumes</option>
+            <option value="classic-m7">Classic M7 — Poudre lavage manuel</option>
+            <option value="active-m20">Active M20 — Poudre lavage manuel</option>
+          </optgroup>
+
+          <optgroup label="🔥 ── CUISINE & ÉQUIPEMENTS ──">
+            <option value="suma-grill-d9">Suma Grill D9 — Fours & Grills</option>
+            <option value="suma-frit-d91">Suma Frit D9.1 — Friteuses</option>
+            <option value="suma-shine-k2">Suma Shine K2 — Inox</option>
+          </optgroup>
+
+          <optgroup label="👕 ── BLANCHISSERIE CLAX ──">
+            <option value="clax-100">Clax 100 — Lavage standard</option>
+            <option value="clax-build">Clax Build — Détergent alcalin</option>
+            <option value="clax-bright">Clax Bright — Blanchiment optique</option>
+            <option value="clax-mild">Clax Mild — Délicat</option>
+            <option value="clax-soft">Clax Soft Fresh — Adoucissant</option>
+            <option value="clax-profi">Clax Profi Forte — Intensif</option>
+          </optgroup>
+
+          <optgroup label="🧹 ── SOLS & SURFACES TASKI ──">
+            <option value="taski-jontec300">TASKI Jontec 300 — Sols</option>
+            <option value="taski-sprint200">TASKI Sprint 200 — Surfaces</option>
+            <option value="taski-sani4in1">TASKI Sani 4in1 — Sanitaires</option>
+            <option value="taski-sani-calc">TASKI Sani Calc — Détartrage sanitaires</option>
+            <option value="taski-tapi">TASKI Tapi Shampoo — Moquette</option>
+          </optgroup>
+
+          <optgroup label="🟡 ── AUTRES PRODUITS ──">
+            <option value="oxivir">Oxivir Excel — Désinfection surfaces</option>
+            <option value="sure-cleaner">Sure Cleaner — Nettoyage universel</option>
+          </optgroup>
+
+          <optgroup label="🏨 ── ROOM CARE DIVERSEY ──">
+            <option value="rc-r1plus">Room Care R1-plus Pur-Eco — Sanitaires</option>
+            <option value="rc-r2plus-eco">Room Care R2-plus Pur-Eco — Surfaces</option>
+            <option value="rc-r2plus">Room Care R2-plus — Surfaces fort</option>
+            <option value="rc-r3plus">Room Care R3-plus Pur-Eco — Vitres</option>
+            <option value="rc-r5plus">Room Care R5-plus — Métal & Chrome</option>
+            <option value="rc-r6plus">Room Care R6-plus — Détartrage fort</option>
+            <option value="rc-r10plus">Room Care R10-plus Pur-Eco — Sols</option>
           </optgroup>
         </select>
 
@@ -2884,7 +2919,79 @@ function sharePhoto() {
 // CALCULATEUR DE DOSAGE
 // =====================
 const PRODUITS = {
-  'suma-bac-d10': {
+  // ─── MACHINE LAVE-VAISSELLE ───
+  'nova-l6': {
+    modes: [
+      { label: 'Lavage machine (SafePack)', dose: 1, unit: 'g', perL: true }
+    ]
+  },
+  'nova-l6-pec': {
+    modes: [
+      { label: 'Lavage machine', dose: 1, unit: 'g', perL: true }
+    ]
+  },
+  'select-a7': {
+    modes: [
+      { label: 'Rinçage machine', dose: 0.2, unit: 'g', perL: true }
+    ]
+  },
+  'special-l4': {
+    modes: [
+      { label: 'Lavage machine', dose: 1.2, unit: 'g', perL: true }
+    ]
+  },
+  'special-l4-pec': {
+    modes: [
+      { label: 'Lavage machine', dose: 1.2, unit: 'g', perL: true }
+    ]
+  },
+  'revoflow-p1': {
+    modes: [
+      { label: 'Lavage machine poudre', dose: 0.5, unit: 'g', perL: true }
+    ]
+  },
+  'revoflow-p2': {
+    modes: [
+      { label: 'Lavage machine poudre', dose: 0.5, unit: 'g', perL: true }
+    ]
+  },
+  'ultra-l2': {
+    modes: [
+      { label: 'Lavage machine', dose: 1, unit: 'g', perL: true }
+    ]
+  },
+  'lima-l3': {
+    modes: [
+      { label: 'Lavage machine', dose: 1, unit: 'g', perL: true }
+    ]
+  },
+  'jade-l8': {
+    modes: [
+      { label: 'Lavage machine', dose: 1, unit: 'g', perL: true }
+    ]
+  },
+  'tera-l56': {
+    modes: [
+      { label: 'Lavage machine', dose: 1, unit: 'g', perL: true }
+    ]
+  },
+  'combi-la6': {
+    modes: [
+      { label: 'Lavage machine combiné', dose: 1, unit: 'g', perL: true }
+    ]
+  },
+  'suma-calc-d5': {
+    modes: [
+      { label: 'Détartrage LV (manuel)', fixed: true, text: '2 pompes (20ml) pour 800ml d\'eau', warning: '⚠️ Éteindre le doseur avant — EPI obligatoire', epi: '🧤 Gants chimiques + 👓 Lunettes' }
+    ]
+  },
+  'top-m40': {
+    modes: [
+      { label: 'Pastilles LV', fixed: true, text: '1 à 2 pastilles au démarrage, puis 1 pastille tous les 5 lavages' }
+    ]
+  },
+  // ─── LAVAGE MANUEL ───
+
     modes: [
       { label: 'Désinfection manuelle', dose: 20, unit: 'ml', perL: true, temps: '5 min', warning: '⚠️ Rincer obligatoirement les surfaces alimentaires après 5 min', epi: '🧤 Gants ménage obligatoires' },
       { label: 'Pompe directe (buse violette)', fixed: true, text: '1 pompe (20ml) pour 2,5L', temps: '5 min', warning: '⚠️ Rincer 5 min', epi: '🧤 Gants ménage' }
