@@ -1221,6 +1221,22 @@ body {
 
   <div class="admin-body">
 
+    <!-- IA Instructions section -->
+    <div class="admin-section">
+      <h3>🤖 Mettre à jour l'IA</h3>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+        Tapez ici vos instructions, nouvelles informations ou modifications à intégrer dans la base de connaissances de l'assistant.
+      </div>
+      <textarea id="iaInstructionText" placeholder="Ex: Ajouter le produit X avec dosage Y ml/L...&#10;Ex: Modifier le dosage du Suma Bac D10 à 15ml/L...&#10;Ex: Nouvelle règle : toujours mentionner le temps de contact..." style="width:100%;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;padding:14px;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;line-height:1.6;resize:none;height:140px;outline:none;-webkit-appearance:none;margin-bottom:10px;" onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'"></textarea>
+      <button onclick="sendIaInstruction()" style="width:100%;background:linear-gradient(135deg,var(--cyan),#2BA893);border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;color:var(--primary);font-family:'Outfit',sans-serif;cursor:pointer;">
+        🚀 Envoyer à l'IA
+      </button>
+      <div id="iaInstructionResult" style="display:none;margin-top:12px;background:rgba(59,206,172,0.08);border:1px solid rgba(59,206,172,0.25);border-radius:12px;padding:14px;font-size:13px;line-height:1.6;"></div>
+
+      <!-- Historique instructions -->
+      <div id="iaInstructionHistory" style="margin-top:14px;"></div>
+    </div>
+
     <!-- Stats section -->
     <div class="admin-section">
       <h3>📊 Tableau de bord</h3>
@@ -2519,8 +2535,124 @@ function deletePhoto(catId, idx) {
 document.getElementById('photoCatSel')?.addEventListener('change', renderAdminPhotos);
 
 // =====================
-// ADMIN - DOCUMENTS
+// ADMIN — IA INSTRUCTIONS
 // =====================
+const IA_INSTRUCTIONS_KEY = 'vitalya_ia_instructions';
+
+function getIaInstructions() {
+  return JSON.parse(localStorage.getItem(IA_INSTRUCTIONS_KEY) || '[]');
+}
+function saveIaInstructions(list) {
+  localStorage.setItem(IA_INSTRUCTIONS_KEY, JSON.stringify(list));
+}
+
+async function sendIaInstruction() {
+  const text = document.getElementById('iaInstructionText').value.trim();
+  if (!text) { showToast('⚠️ Écrivez une instruction', true); return; }
+
+  const btn = document.querySelector('#iaInstructionResult').previousElementSibling;
+  btn.textContent = '⏳ Traitement en cours...';
+  btn.disabled = true;
+
+  const resultEl = document.getElementById('iaInstructionResult');
+  resultEl.style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        messages: [{
+          role: 'user',
+          content: `Tu es l'assistant admin de Vitalya. L'administrateur te donne l'instruction suivante à intégrer dans la base de connaissances technique :\n\n"${text}"\n\nRéponds avec :\n1. Une confirmation de ce que tu as compris\n2. La formulation exacte que tu vas ajouter à ta base de connaissances\n3. Un résumé en 1 ligne\n\nFormat concis, professionnel.`
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const reply = data.content?.[0]?.text || 'Erreur de traitement.';
+
+    // Sauvegarder dans extra knowledge
+    const extra = getExtra();
+    extra.push(`=== INSTRUCTION ADMIN (${new Date().toLocaleDateString('fr-FR')}) ===\n${text}`);
+    saveExtra(extra);
+
+    // Sauvegarder dans historique
+    const instructions = getIaInstructions();
+    instructions.unshift({
+      text,
+      reply,
+      date: new Date().toLocaleDateString('fr-FR'),
+      time: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})
+    });
+    if (instructions.length > 20) instructions.pop();
+    saveIaInstructions(instructions);
+
+    // Afficher résultat
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `<strong style="color:var(--cyan)">✅ Intégré avec succès</strong><br><br>${reply.replace(/\n/g, '<br>')}`;
+
+    document.getElementById('iaInstructionText').value = '';
+    renderIaHistory();
+    showToast('✅ Instruction intégrée !');
+
+  } catch(e) {
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `<span style="color:#FF6B75">❌ Erreur : ${e.message}</span>`;
+    showToast('❌ Erreur de connexion', true);
+  }
+
+  btn.textContent = '🚀 Envoyer à l\'IA';
+  btn.disabled = false;
+}
+
+function renderIaHistory() {
+  const instructions = getIaInstructions();
+  const el = document.getElementById('iaInstructionHistory');
+  if (!el) return;
+  if (!instructions.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = `
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">
+      📋 Historique (${instructions.length})
+    </div>
+    ${instructions.map((inst, i) => `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:11px;color:var(--muted)">${inst.date} à ${inst.time}</span>
+          <button onclick="deleteIaInstruction(${i})" style="background:none;border:none;color:rgba(232,72,85,0.5);font-size:16px;cursor:pointer;">🗑</button>
+        </div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px;">${inst.text}</div>
+      </div>
+    `).join('')}
+    <button onclick="clearAllIaInstructions()" style="width:100%;background:rgba(232,72,85,0.1);border:1px solid rgba(232,72,85,0.3);border-radius:10px;padding:10px;color:#FF6B75;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;margin-top:4px;">
+      🗑 Effacer tout l'historique
+    </button>
+  `;
+}
+
+function deleteIaInstruction(i) {
+  const instructions = getIaInstructions();
+  const extra = getExtra();
+  instructions.splice(i, 1);
+  extra.splice(i, 1);
+  saveIaInstructions(instructions);
+  saveExtra(extra);
+  renderIaHistory();
+  showToast('Instruction supprimée');
+}
+
+function clearAllIaInstructions() {
+  saveIaInstructions([]);
+  saveExtra([]);
+  renderIaHistory();
+  document.getElementById('iaInstructionResult').style.display = 'none';
+  showToast('Historique effacé');
+}
+
+
 function getDocs() { return JSON.parse(localStorage.getItem(DOCS_KEY) || '[]'); }
 function saveDocs(d) { localStorage.setItem(DOCS_KEY, JSON.stringify(d)); }
 function getExtra() { return JSON.parse(localStorage.getItem(EXTRA_KEY) || '[]'); }
@@ -2648,6 +2780,7 @@ function showToast(msg, err=false) {
 // Init
 renderAdminDocs();
 renderAdminStats();
+renderIaHistory();
 
 // =====================
 // FAVORIS
