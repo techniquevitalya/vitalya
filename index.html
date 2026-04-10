@@ -1270,7 +1270,7 @@ body {
     <!-- FICHES TAB -->
     <div class="tab-page" id="fichesPage">
       <!-- LIST VIEW -->
-      <div id="fichesList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+      <div id="fichesList" class="fiches-list-scroll">
 
         <div class="cats-inner">
 
@@ -2784,7 +2784,18 @@ function openFiche(id) {
 
 function closeFiche() {
   document.getElementById('ficheDetail').style.display = 'none';
-  document.getElementById('fichesList').style.display = 'flex';
+  document.getElementById('ficheDetail').querySelector('.back-btn').onclick = closeFiche;
+  restoreFichesList();
+}
+
+function restoreFichesList() {
+  const fl = document.getElementById('fichesList');
+  fl.style.display = '';
+  fl.style.flex = '1';
+  fl.style.overflowY = 'auto';
+  fl.style.webkitOverflowScrolling = 'touch';
+  // Reset scroll to top
+  fl.scrollTop = 0;
 }
 
 function openPhotoCatSelector() {
@@ -2792,8 +2803,6 @@ function openPhotoCatSelector() {
   document.getElementById('fichesList').style.display = 'none';
   document.getElementById('ficheDetail').style.display = 'none';
   document.getElementById('galleryView').style.display = 'none';
-
-  // Reuse ficheDetail for cat selection
   document.getElementById('ficheDetail').style.display = 'flex';
   document.getElementById('ficheTitle').textContent = '📸 Galerie Photos';
   document.getElementById('ficheSubtitle').textContent = 'Choisir une catégorie';
@@ -4168,7 +4177,7 @@ function openDynamicGallery(catId) {
     document.getElementById('ficheDetail').querySelector('.back-btn').onclick = () => {
       document.getElementById('ficheDetail').style.display = 'none';
       document.getElementById('ficheDetail').querySelector('.back-btn').onclick = closeFiche;
-      document.getElementById('fichesList').style.display = 'flex';
+      restoreFichesList();
     };
     let html = '';
     if (directPhotos.length) html += `<div class="cat-card" style="margin-bottom:10px" onclick="openSubGallery('${catId}','__direct__','${cat.name}','${cat.icon}',true)"><div class="cat-icon blue">📸</div><div class="cat-info"><div class="cat-name">Photos générales</div><div class="cat-count">${directPhotos.length} photo${directPhotos.length!==1?'s':''}</div></div><div class="cat-arrow">›</div></div>`;
@@ -4227,7 +4236,7 @@ function closeGalleryToParent() {
     openDynamicGallery(_galleryNav.catId);
   } else {
     // Revenir à la liste des fiches
-    document.getElementById('fichesList').style.display = 'flex';
+    restoreFichesList();
   }
 }
 
