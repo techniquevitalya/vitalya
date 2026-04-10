@@ -6,6 +6,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vitalya Expert">
+<meta name="theme-color" content="#060F1E">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>Vitalya Expert</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script>
@@ -710,7 +714,18 @@ body {
   flex-direction: column; align-items: center; justify-content: center;
 }
 .lightbox.open { display: flex; }
-.lightbox img { max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 8px; }
+.lightbox img { max-width: 100%; max-height: 78vh; object-fit: contain; border-radius: 8px; cursor: pointer; }
+.lightbox-nav-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,0.15); border: none;
+  border-radius: 50%; width: 44px; height: 44px;
+  color: #fff; font-size: 26px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10; transition: background 0.2s;
+}
+.lightbox-nav-btn:active { background: rgba(255,255,255,0.3); }
+#lightboxPrev { left: 12px; }
+#lightboxNext { right: 12px; }
 .lightbox-close {
   position: absolute; top: 16px; right: 16px;
   background: rgba(255,255,255,0.15); border: none;
@@ -1256,11 +1271,7 @@ body {
     <div class="tab-page" id="fichesPage">
       <!-- LIST VIEW -->
       <div id="fichesList" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
-        <div style="padding:10px 14px 0;display:flex;justify-content:flex-end;">
-          <button onclick="syncPhotosFromCloudinary().then(()=>showToast('✅ Photos synchronisées'))" style="background:rgba(59,206,172,0.1);border:1px solid rgba(59,206,172,0.25);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--cyan);font-family:'Outfit',sans-serif;font-weight:700;cursor:pointer;">
-            🔄 Actualiser les photos
-          </button>
-        </div>
+
         <div class="cats-inner">
 
           <div class="section-title">🔧 Installations</div>
@@ -1650,6 +1661,15 @@ body {
       <div id="iaInstructionHistory" style="margin-top:14px;"></div>
     </div>
 
+    <!-- Stats connexion -->
+    <div class="admin-section">
+      <h3>📡 Statistiques de connexion</h3>
+      <button onclick="loadConnectionStats()" style="width:100%;background:rgba(59,206,172,0.1);border:1px solid rgba(59,206,172,0.25);border-radius:12px;padding:11px;font-size:13px;font-weight:700;color:var(--cyan);font-family:'Outfit',sans-serif;cursor:pointer;margin-bottom:12px;">
+        📡 Charger les stats
+      </button>
+      <div id="connectionStats"></div>
+    </div>
+
     <!-- Stats section -->
     <div class="admin-section">
       <h3>📊 Tableau de bord</h3>
@@ -1713,11 +1733,16 @@ body {
 
 
 <!-- LIGHTBOX -->
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+<div class="lightbox" id="lightbox">
   <button class="lightbox-close" onclick="closeLightbox()">✕</button>
-  <button class="lightbox-share" onclick="event.stopPropagation();sharePhoto()" title="Partager">📤</button>
-  <img id="lightboxImg" src="" alt="">
+  <button class="lightbox-share" onclick="sharePhoto()" title="Partager">📤</button>
+  <button class="lightbox-nav-btn" id="lightboxPrev" onclick="lightboxPrev()">‹</button>
+  <div id="lightboxMediaWrap" style="display:flex;align-items:center;justify-content:center;width:100%;max-height:80vh;">
+    <img id="lightboxImg" src="" alt="" onclick="lightboxNext()">
+  </div>
+  <button class="lightbox-nav-btn" id="lightboxNext" onclick="lightboxNext()">›</button>
   <div class="lightbox-caption" id="lightboxCaption"></div>
+  <div id="lightboxNav" style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;"></div>
 </div>
 
 <!-- PANEL OVERLAY -->
@@ -1850,6 +1875,8 @@ async function doLogin() {
   const user = users.find(u => u.active && u.username.toLowerCase() === username && u.password === pwd);
   if (user) {
     currentUser = user;
+    // Log connexion
+    logConnection(user.id, user.name);
     showScreen('techScreen');
     // Update topbar with user name
     document.getElementById('topbarUser').textContent = `👤 ${user.name}`;
@@ -1906,6 +1933,57 @@ function logout() {
 // =====================
 // USER MANAGEMENT (ADMIN)
 // =====================
+// ─── STATS CONNEXION ─────────────────────────────────────────────────────────
+const CONN_LOG_KEY = 'vitalya_conn_log';
+
+async function logConnection(userId, userName) {
+  const log = { userId, userName, date: new Date().toLocaleDateString('fr-FR'), time: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}), ts: Date.now() };
+  // Save to Firebase
+  if (window._fbReady) {
+    try {
+      const r = window._fbRef(window._fbDb, `vitalya/connections/${Date.now()}`);
+      await window._fbSet(r, log);
+    } catch(e) {}
+  }
+}
+
+async function loadConnectionStats() {
+  const el = document.getElementById('connectionStats');
+  if (!el) return;
+  if (!window._fbReady) { el.innerHTML = '<div style="font-size:13px;color:var(--muted);">Firebase non disponible</div>'; return; }
+  try {
+    const r = window._fbRef(window._fbDb, 'vitalya/connections');
+    const snap = await window._fbGet(r);
+    if (!snap.exists()) { el.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:16px;">Aucune connexion enregistrée</div>'; return; }
+    const logs = Object.values(snap.val()).sort((a,b) => b.ts - a.ts).slice(0, 30);
+    // Group by user
+    const byUser = {};
+    logs.forEach(l => {
+      if (!byUser[l.userName]) byUser[l.userName] = { count: 0, last: '' };
+      byUser[l.userName].count++;
+      if (!byUser[l.userName].last) byUser[l.userName].last = `${l.date} à ${l.time}`;
+    });
+    el.innerHTML = `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;">Résumé par technicien</div>
+      ${Object.entries(byUser).map(([name, d]) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(59,206,172,0.12);border:1px solid rgba(59,206,172,0.25);display:flex;align-items:center;justify-content:center;font-size:16px;">👤</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;">${name}</div>
+            <div style="font-size:11px;color:var(--muted);">Dernière connexion : ${d.last}</div>
+          </div>
+          <div style="background:rgba(59,206,172,0.12);border:1px solid rgba(59,206,172,0.25);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--cyan);">${d.count}x</div>
+        </div>`).join('')}
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:14px 0 8px;">30 dernières connexions</div>
+      ${logs.map(l => `
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;">
+          <span style="font-weight:600;">${l.userName}</span>
+          <span style="color:var(--muted);">${l.date} à ${l.time}</span>
+        </div>`).join('')}
+    `;
+  } catch(e) { el.innerHTML = '<div style="font-size:13px;color:#FF6B75;">Erreur chargement</div>'; }
+}
+
 function renderUserList() {
   const users = getUsers();
   const el = document.getElementById('userList');
@@ -2759,8 +2837,7 @@ function openCatFromFiche(catId, catName, icon) {
 }
 
 function closeGallery() {
-  document.getElementById('galleryView').style.display = 'none';
-  openPhotoCatSelector();
+  closeGalleryToParent();
 }
 
 // =====================
@@ -3235,7 +3312,24 @@ function openLightbox(url, caption, videoFlag) {
   document.getElementById('lightboxCaption').textContent = caption || '';
   document.getElementById('lightbox').classList.add('open');
 }
-function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+function closeLightbox() {
+  const lb = document.getElementById('lightbox');
+  lb.classList.remove('open');
+  const vid = lb.querySelector('.lb-video');
+  if (vid) { vid.pause(); vid.remove(); }
+  document.getElementById('lightboxImg').style.display = '';
+}
+
+// Swipe support in lightbox
+(function() {
+  let startX = 0;
+  const lb = document.getElementById('lightbox');
+  lb.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+  lb.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 50) { dx < 0 ? lightboxNext() : lightboxPrev(); }
+  }, { passive: true });
+})();
 
 // =====================
 // ADMIN - PHOTOS
@@ -3735,7 +3829,11 @@ function renderAdminCatList() {
             <button class="admin-action-btn btn-rename" onclick="showRenameModal('${cat.id}')">✏️ Renommer</button>
             <button class="admin-action-btn btn-add-sub" onclick="showAddSubModal('${cat.id}')">📂 Sous-dossier</button>
             <button class="admin-action-btn btn-add-photo" onclick="triggerPhotoUpload('${cat.id}', null)">📷 Média</button>
-            ${ci >= DEFAULT_CATS.length ? `<button class="admin-action-btn btn-delete-cat" onclick="deleteCat('${cat.id}')">🗑</button>` : ''}
+            <button class="admin-action-btn btn-delete-cat" onclick="deleteCat('${cat.id}')">🗑</button>
+          </div>
+          <div style="display:flex;gap:6px;padding:0 0 8px;">
+            <button class="admin-action-btn" style="background:rgba(255,255,255,0.06);color:var(--muted);border:1px solid rgba(255,255,255,0.1);" onclick="moveCat('${cat.id}',-1)">⬆️ Monter</button>
+            <button class="admin-action-btn" style="background:rgba(255,255,255,0.06);color:var(--muted);border:1px solid rgba(255,255,255,0.1);" onclick="moveCat('${cat.id}',1)">⬇️ Descendre</button>
           </div>
           ${(cat.subs || []).map((sub, si) => {
             const subPhotos = countPhotosInSub(photos, cat.id, sub.id);
@@ -3926,6 +4024,22 @@ function deleteCat(catId) {
     </div>`);
 }
 
+function moveCat(catId, dir) {
+  const cats = getCats();
+  const idx = cats.findIndex(c => c.id === catId);
+  if (idx === -1) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= cats.length) return;
+  [cats[idx], cats[newIdx]] = [cats[newIdx], cats[idx]];
+  saveCats(cats);
+  renderAdminCatList();
+  // Keep the moved item open
+  setTimeout(() => {
+    document.getElementById(`body-${catId}`)?.classList.add('open');
+    document.getElementById(`chevron-${catId}`)?.classList.add('open');
+  }, 100);
+}
+
 function confirmDeleteCat(catId) {
   const cats = getCats().filter(c => c.id !== catId); saveCats(cats);
   const photos = getPhotos();
@@ -4045,38 +4159,116 @@ function openDynamicGallery(catId) {
   const photos = getPhotos();
   const subsWithPhotos = (cat.subs||[]).filter(s => countPhotosInSub(photos, catId, s.id) > 0);
   const directPhotos = photos[catId] || [];
-  if (subsWithPhotos.length > 0) {
+  if (subsWithPhotos.length > 0 || directPhotos.length > 0) {
     document.getElementById('fichesList').style.display = 'none';
     document.getElementById('ficheDetail').style.display = 'flex';
     document.getElementById('ficheTitle').textContent = `${cat.icon} ${cat.name}`;
     document.getElementById('ficheSubtitle').textContent = 'Choisir un dossier';
+    // Back button goes to fichesList
+    document.getElementById('ficheDetail').querySelector('.back-btn').onclick = () => {
+      document.getElementById('ficheDetail').style.display = 'none';
+      document.getElementById('ficheDetail').querySelector('.back-btn').onclick = closeFiche;
+      document.getElementById('fichesList').style.display = 'flex';
+    };
     let html = '';
-    if (directPhotos.length) html += `<div class="cat-card" style="margin-bottom:10px" onclick="openSubGallery('${catId}','__direct__','${cat.name}','${cat.icon}')"><div class="cat-icon blue">📸</div><div class="cat-info"><div class="cat-name">Photos générales</div><div class="cat-count">${directPhotos.length} photo${directPhotos.length!==1?'s':''}</div></div><div class="cat-arrow">›</div></div>`;
-    subsWithPhotos.forEach(sub => { const n=countPhotosInSub(photos,catId,sub.id); html+=`<div class="cat-card" style="margin-bottom:10px" onclick="openSubGallery('${catId}','${sub.id}','${sub.name}','${sub.icon||'📁'}')"><div class="cat-icon blue">${sub.icon||'📁'}</div><div class="cat-info"><div class="cat-name">${sub.name}</div><div class="cat-count">${n} photo${n!==1?'s':''}</div></div><div class="cat-arrow">›</div></div>`; });
+    if (directPhotos.length) html += `<div class="cat-card" style="margin-bottom:10px" onclick="openSubGallery('${catId}','__direct__','${cat.name}','${cat.icon}',true)"><div class="cat-icon blue">📸</div><div class="cat-info"><div class="cat-name">Photos générales</div><div class="cat-count">${directPhotos.length} photo${directPhotos.length!==1?'s':''}</div></div><div class="cat-arrow">›</div></div>`;
+    subsWithPhotos.forEach(sub => { const n=countPhotosInSub(photos,catId,sub.id); html+=`<div class="cat-card" style="margin-bottom:10px" onclick="openSubGallery('${catId}','${sub.id}','${sub.name}','${sub.icon||'📁'}',true)"><div class="cat-icon blue">${sub.icon||'📁'}</div><div class="cat-info"><div class="cat-name">${sub.name}</div><div class="cat-count">${n} photo${n!==1?'s':''}</div></div><div class="cat-arrow">›</div></div>`; });
     document.getElementById('ficheContent').innerHTML = html;
-  } else { openSubGallery(catId, '__direct__', cat.name, cat.icon); }
+  } else { openSubGallery(catId, '__direct__', cat.name, cat.icon, false); }
 }
 
-function openSubGallery(catId, subId, name, icon) {
-  const photos = getPhotos(); const key = subId==='__direct__' ? catId : `${catId}__${subId}`;
-  const catPhotos = photos[key] || [];
+// Navigation state pour le retour arrière correct
+let _galleryNav = { catId: null, subId: null, name: '', icon: '', hasParent: false };
+let _currentGalleryPhotos = [];
+let _currentPhotoIdx = 0;
+
+function openSubGallery(catId, subId, name, icon, hasParent) {
+  _galleryNav = { catId, subId, name, icon, hasParent: !!hasParent };
+  const photos = getPhotos();
+  const key = subId === '__direct__' ? catId : `${catId}__${subId}`;
+  _currentGalleryPhotos = photos[key] || [];
+
   document.getElementById('ficheDetail').style.display = 'none';
   const gv = document.getElementById('galleryView'); gv.style.display = 'flex';
   document.getElementById('galleryTitle').textContent = `${icon} ${name}`;
-  document.getElementById('galleryCount').textContent = `${catPhotos.length} photo${catPhotos.length!==1?'s':''}`;
+  document.getElementById('galleryCount').textContent = `${_currentGalleryPhotos.length} photo${_currentGalleryPhotos.length!==1?'s':''}`;
+
   const grid = document.getElementById('photoGrid'); grid.innerHTML = '';
-  if (!catPhotos.length) { grid.innerHTML='<div class="photo-empty"><div class="emoji">📭</div><p>Aucune photo.</p></div>'; return; }
-  catPhotos.forEach(p => {
-    const item=document.createElement('div'); item.className='photo-item'; item.onclick=()=>openLightbox(p.url,p.label,p.isVideo);
+  if (!_currentGalleryPhotos.length) {
+    grid.innerHTML = '<div class="photo-empty"><div class="emoji">📭</div><p>Aucune photo.</p></div>';
+    return;
+  }
+
+  _currentGalleryPhotos.forEach((p, idx) => {
+    const item = document.createElement('div'); item.className = 'photo-item';
+    item.onclick = () => openLightboxGallery(idx);
     if (isVideo(p.url, p)) {
-      const vid=document.createElement('video'); vid.src=p.url; vid.style.cssText='width:100%;height:100%;object-fit:cover;'; vid.muted=true; vid.preload='metadata'; item.appendChild(vid);
-      const badge=document.createElement('div'); badge.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;pointer-events:none;background:rgba(0,0,0,0.4);border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;'; badge.textContent='▶️'; item.appendChild(badge);
+      const vid = document.createElement('video'); vid.src = p.url;
+      vid.style.cssText = 'width:100%;height:100%;object-fit:cover;'; vid.muted = true; vid.preload = 'metadata';
+      item.appendChild(vid);
+      const badge = document.createElement('div');
+      badge.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;pointer-events:none;background:rgba(0,0,0,0.4);border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;';
+      badge.textContent = '▶️'; item.appendChild(badge);
     } else {
-      const img=document.createElement('img'); img.src=p.url; img.loading='lazy'; item.appendChild(img);
+      const img = document.createElement('img'); img.src = p.url; img.loading = 'lazy'; item.appendChild(img);
     }
-    if(p.label){const lbl=document.createElement('div');lbl.className='photo-label';lbl.textContent=p.label;item.appendChild(lbl);}
+    if (p.label) { const lbl = document.createElement('div'); lbl.className = 'photo-label'; lbl.textContent = p.label; item.appendChild(lbl); }
     grid.appendChild(item);
   });
+
+  // Swipe support
+  initGallerySwipe(grid);
+}
+
+function closeGalleryToParent() {
+  document.getElementById('galleryView').style.display = 'none';
+  if (_galleryNav.hasParent) {
+    // Revenir à la liste des sous-dossiers
+    openDynamicGallery(_galleryNav.catId);
+  } else {
+    // Revenir à la liste des fiches
+    document.getElementById('fichesList').style.display = 'flex';
+  }
+}
+
+// Swipe gauche/droite dans la galerie
+function initGallerySwipe(el) {
+  let startX = 0, startY = 0;
+  el.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, { passive: true });
+  el.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    // Only horizontal swipe (not scroll)
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      // Swipe in gallery navigates photos — handled in lightbox
+    }
+  }, { passive: true });
+}
+
+// Lightbox avec navigation swipe
+function openLightboxGallery(idx) {
+  _currentPhotoIdx = idx;
+  const p = _currentGalleryPhotos[idx];
+  if (!p) return;
+  openLightbox(p.url, p.label, p.isVideo);
+  updateLightboxNav();
+}
+
+function updateLightboxNav() {
+  const total = _currentGalleryPhotos.length;
+  const nav = document.getElementById('lightboxNav');
+  if (nav) {
+    nav.textContent = `${_currentPhotoIdx + 1} / ${total}`;
+    document.getElementById('lightboxPrev').style.opacity = _currentPhotoIdx > 0 ? '1' : '0.3';
+    document.getElementById('lightboxNext').style.opacity = _currentPhotoIdx < total - 1 ? '1' : '0.3';
+  }
+}
+
+function lightboxPrev() {
+  if (_currentPhotoIdx > 0) { _currentPhotoIdx--; const p = _currentGalleryPhotos[_currentPhotoIdx]; openLightbox(p.url, p.label, p.isVideo); updateLightboxNav(); }
+}
+function lightboxNext() {
+  if (_currentPhotoIdx < _currentGalleryPhotos.length - 1) { _currentPhotoIdx++; const p = _currentGalleryPhotos[_currentPhotoIdx]; openLightbox(p.url, p.label, p.isVideo); updateLightboxNav(); }
 }
 
 const IA_INSTRUCTIONS_KEY = 'vitalya_ia_instructions';
@@ -4341,6 +4533,17 @@ if (window._fbReady) {
   window.addEventListener('firebase-ready', initApp);
   // Fallback: if Firebase doesn't load in 3s, init with local data
   setTimeout(() => { if (!window._fbReady) initApp(); }, 3000);
+}
+
+// PWA Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      console.log('SW registered');
+    }).catch(err => {
+      console.log('SW registration failed:', err);
+    });
+  });
 }
 
 // =====================
