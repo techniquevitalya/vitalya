@@ -1664,6 +1664,36 @@ body {
 
       <!-- Historique instructions -->
       <div id="iaInstructionHistory" style="margin-top:14px;"></div>
+
+      <!-- PHOTO APPRENTISSAGE -->
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">
+        <div style="font-size:13px;font-weight:700;color:var(--cyan);margin-bottom:8px;">📸 Apprendre depuis une photo</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+          Photographiez une fiche technique, un document ou un écran — l'IA lit l'image et extrait automatiquement les informations dans sa base de connaissances.
+        </div>
+
+        <!-- Zone de capture photo -->
+        <div id="photoLearnZone" onclick="triggerPhotoLearn()" style="border:2px dashed rgba(59,206,172,0.4);border-radius:14px;padding:24px 16px;text-align:center;cursor:pointer;background:rgba(59,206,172,0.04);margin-bottom:10px;transition:all 0.2s;">
+          <div style="font-size:32px;margin-bottom:8px;">📷</div>
+          <div style="font-size:14px;font-weight:700;color:var(--cyan);">Prendre une photo / Choisir une image</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">Fiche produit, notice, document technique...</div>
+        </div>
+        <input type="file" id="photoLearnInput" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoLearn(this)">
+
+        <!-- Preview de la photo -->
+        <div id="photoLearnPreview" style="display:none;margin-bottom:10px;">
+          <img id="photoLearnImg" style="width:100%;border-radius:12px;max-height:200px;object-fit:cover;">
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;text-align:center;">Image sélectionnée — cliquez sur Analyser</div>
+        </div>
+
+        <!-- Bouton analyser -->
+        <button id="photoLearnBtn" onclick="analyzePhotoLearn()" style="display:none;width:100%;background:linear-gradient(135deg,#6C63FF,#4A43CC);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;color:#fff;font-family:'Outfit',sans-serif;cursor:pointer;margin-bottom:8px;">
+          🧠 Analyser et intégrer dans la base de connaissances
+        </button>
+
+        <!-- Résultat analyse -->
+        <div id="photoLearnResult" style="display:none;background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.25);border-radius:12px;padding:14px;font-size:13px;line-height:1.6;color:var(--text);"></div>
+      </div>
     </div>
 
     <!-- Stats connexion -->
@@ -4576,6 +4606,128 @@ function getIaInstructions() {
 }
 function saveIaInstructions(list) {
   localStorage.setItem(IA_INSTRUCTIONS_KEY, JSON.stringify(list));
+}
+
+// =============================================
+// PHOTO APPRENTISSAGE IA
+// =============================================
+let _photoLearnBase64 = null;
+let _photoLearnMime = null;
+
+function triggerPhotoLearn() {
+  document.getElementById('photoLearnInput').click();
+}
+
+function handlePhotoLearn(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    _photoLearnMime = file.type || 'image/jpeg';
+    _photoLearnBase64 = dataUrl.split(',')[1];
+
+    // Show preview
+    document.getElementById('photoLearnImg').src = dataUrl;
+    document.getElementById('photoLearnPreview').style.display = 'block';
+    document.getElementById('photoLearnBtn').style.display = 'block';
+    document.getElementById('photoLearnResult').style.display = 'none';
+    document.getElementById('photoLearnZone').style.borderColor = 'rgba(59,206,172,0.8)';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzePhotoLearn() {
+  if (!_photoLearnBase64) return;
+
+  const btn = document.getElementById('photoLearnBtn');
+  const result = document.getElementById('photoLearnResult');
+  btn.textContent = '⏳ Analyse en cours...';
+  btn.disabled = true;
+  result.style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: _photoLearnMime,
+                data: _photoLearnBase64
+              }
+            },
+            {
+              type: 'text',
+              text: `Tu es un expert technique Vitalya. Analyse cette image (fiche technique, document, notice, étiquette produit...) et extrais TOUTES les informations techniques utiles pour les techniciens terrain.
+
+Formate ta réponse ainsi :
+=== CONTENU EXTRAIT DE LA PHOTO ===
+[Produit/Sujet principal identifié]
+
+[Toutes les informations techniques extraites : dosages, références, procédures, températures, pressions, EPI requis, avertissements, etc.]
+
+Sois précis, exhaustif et utilise les termes exacts du document. Si c'est illisible ou non pertinent, dis-le clairement.`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const extracted = data.content?.[0]?.text || 'Impossible de lire l\'image.';
+
+    // Display result
+    result.innerHTML = '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#8B7FFF;margin-bottom:8px;">📋 Informations extraites :</div>' +
+      extracted.replace(/\n/g, '<br>');
+    result.style.display = 'block';
+
+    // Add to IA knowledge base automatically
+    const existing = JSON.parse(localStorage.getItem(EXTRA_KEY) || '[]');
+    existing.push(extracted);
+    localStorage.setItem(EXTRA_KEY, JSON.stringify(existing));
+
+    // Also save to Firebase
+    if (window._fbReady) {
+      try {
+        const r = window._fbRef(window._fbDb, `vitalya/ia_knowledge/${Date.now()}`);
+        await window._fbSet(r, { content: extracted, date: new Date().toLocaleDateString('fr-FR'), source: 'photo' });
+      } catch(e) {}
+    }
+
+    btn.textContent = '✅ Intégré dans la base de connaissances !';
+    btn.style.background = 'linear-gradient(135deg,var(--cyan),#2BA893)';
+    btn.style.color = 'var(--primary)';
+    showToast('✅ Fiche intégrée dans la base de l\'IA !');
+
+    // Reset after 3s
+    setTimeout(() => {
+      btn.textContent = '🧠 Analyser et intégrer dans la base de connaissances';
+      btn.style.background = 'linear-gradient(135deg,#6C63FF,#4A43CC)';
+      btn.style.color = '#fff';
+      btn.disabled = false;
+      _photoLearnBase64 = null;
+      _photoLearnMime = null;
+      document.getElementById('photoLearnPreview').style.display = 'none';
+      document.getElementById('photoLearnBtn').style.display = 'none';
+      document.getElementById('photoLearnZone').style.borderColor = 'rgba(59,206,172,0.4)';
+      document.getElementById('photoLearnInput').value = '';
+    }, 4000);
+
+  } catch(e) {
+    result.innerHTML = '❌ Erreur lors de l\'analyse. Vérifiez votre connexion.';
+    result.style.display = 'block';
+    btn.textContent = '🧠 Analyser et intégrer dans la base de connaissances';
+    btn.disabled = false;
+  }
 }
 
 async function sendIaInstruction() {
