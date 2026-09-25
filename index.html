@@ -656,6 +656,27 @@ body {
 .machine-system-select option{background:#fff;color:#111;font:600 14px 'Outfit',sans-serif}
 body.light-mode .machine-system-select{color:#111;background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.15);color-scheme:light}
 .machine-system-select:focus{border-color:var(--cyan)}
+.dosage-page{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:14px;-webkit-overflow-scrolling:touch}
+.dosage-hero{background:linear-gradient(135deg,rgba(59,206,172,.12),rgba(10,36,99,.18));border:1px solid rgba(59,206,172,.22);border-radius:18px;padding:16px;margin-bottom:12px}
+.dosage-hero-title{font-size:20px;font-weight:850}.dosage-hero-sub{font-size:12px;color:var(--muted);line-height:1.5;margin-top:4px}
+.dosage-add-btn{width:100%;border:none;border-radius:13px;padding:13px 14px;background:linear-gradient(135deg,var(--cyan),#2BA893);color:var(--primary);font:800 14px 'Outfit',sans-serif;cursor:pointer;margin-top:14px}
+.dosage-client-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:15px;margin-bottom:10px;overflow:hidden}
+.dosage-client-head{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
+.dosage-client-icon{font-size:22px}.dosage-client-name{font-size:14px;font-weight:850;flex:1}.dosage-client-count{font-size:11px;color:var(--muted)}
+.dosage-list{padding:8px}
+.dosage-row{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:11px;background:rgba(255,255,255,.025);margin-bottom:6px}
+.dosage-row:last-child{margin-bottom:0}
+.dosage-product{flex:1;min-width:0}.dosage-product-name{font-size:13px;font-weight:800}.dosage-product-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.dosage-badge{font-size:11px;font-weight:800;padding:5px 8px;border-radius:9px;background:rgba(59,206,172,.12);color:var(--cyan);white-space:nowrap}
+.dosage-empty{font-size:12px;color:var(--muted);padding:12px;text-align:center}
+.dosage-select,.dosage-input{width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 13px;color:var(--text);font:600 14px 'Outfit',sans-serif;outline:none;margin-bottom:10px;color-scheme:dark}
+.dosage-select option{background:#fff;color:#111;font:600 14px 'Outfit',sans-serif}
+body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.15);color-scheme:light}
+.dosage-label{display:block;font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin:2px 0 7px}
+.dosage-type-row{display:flex;gap:8px;margin-bottom:10px}
+.dosage-type-btn{flex:1;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 8px;background:rgba(255,255,255,.04);color:var(--muted);font:700 12px 'Outfit',sans-serif;cursor:pointer}
+.dosage-type-btn.active{background:rgba(59,206,172,.12);border-color:rgba(59,206,172,.38);color:var(--cyan)}
+
 /* ==================== MACHINES AJOUTÉES / VALIDATION ==================== */
 .machine-add-btn{width:34px;height:34px;border:none;border-radius:10px;background:rgba(59,206,172,.14);border:1px solid rgba(59,206,172,.28);color:var(--cyan);font-size:17px;cursor:pointer;flex-shrink:0}
 .machine-add-btn:active{transform:scale(.92)}
@@ -1458,6 +1479,7 @@ body.light-mode .machine-system-select{color:#111;background:rgba(0,0,0,.05);bor
             <div class="library-sub">Chaque système validé est rangé par type, puis par modèle / marque, avec ses photos et vidéos.</div>
             <button class="library-add-btn" onclick="showAddMachineModal()">➕ Ajouter un système de dosage</button>
             <button class="library-request-btn" onclick="showMyMachineRequests()">📨 Mes demandes</button>
+            <button class="library-request-btn" onclick="openDosagePage()">💧 Dosage produits</button>
           </div>
           <div id="machineLibraryHome"></div>
         </div>
@@ -1491,6 +1513,19 @@ body.light-mode .machine-system-select{color:#111;background:rgba(0,0,0,.05);bor
           </div>
         </div>
         <div class="photo-grid" id="photoGrid"></div>
+      </div>
+    </div>
+
+    <!-- DOSAGES PRODUITS -->
+    <div class="tab-page" id="dosagesPage">
+      <div class="dosage-page">
+        <div class="dosage-hero">
+          <button onclick="closeDosagePage()" style="border:none;background:transparent;color:var(--muted);font:700 12px 'Outfit',sans-serif;padding:0 0 8px;cursor:pointer">‹ Retour aux fichiers</button>
+          <div class="dosage-hero-title">💧 Dosage produits</div>
+          <div class="dosage-hero-sub">Renseigne les dosages utilisés sur le terrain par client. Les informations sont partagées avec les techniciens.</div>
+          <button class="dosage-add-btn" onclick="showAddProductDosageModal()">➕ Ajouter un dosage</button>
+        </div>
+        <div id="productDosagesList"></div>
       </div>
     </div>
 
@@ -1977,9 +2012,9 @@ async function restoreSession() {
     currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
     saveSession(currentUser);
     showScreen('adminScreen');
-    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders()]).then(() => {
-      renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList(); renderMachineRequests(); renderAdminLibraryFolders();
-      fbListenPhotos(); fbListenCats(); fbListenMachineRequests(); fbListenApprovedMachines();
+    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages()]).then(() => {
+      renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList(); renderMachineRequests(); renderAdminLibraryFolders(); renderProductDosages();
+      fbListenPhotos(); fbListenCats(); fbListenMachineRequests(); fbListenApprovedMachines(); fbListenProductDosages();
     });
     return;
   }
@@ -1990,10 +2025,11 @@ async function restoreSession() {
   document.getElementById('topbarUser').textContent = '👤 ' + user.name;
   loadUserData(user.id);
   initTheme();
-  await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders()]);
+  await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages()]);
   fbListenMachineRequests();
   fbListenApprovedMachines();
   fbListenLibraryFolders();
+  fbListenProductDosages();
   buildFichesList();
   saveSession(user);
   showScreen('techScreen');
@@ -2778,8 +2814,8 @@ function confirmDeleteUser(idx) {
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  document.getElementById(tab + 'Page').classList.add('active');
+  document.getElementById('tab-' + tab)?.classList.add('active');
+  document.getElementById(tab + 'Page')?.classList.add('active');
   // Firebase listener handles real-time updates automatically
 }
 
@@ -5650,10 +5686,125 @@ function showToast(msg, err=false) {
   setTimeout(() => t.remove(), 3000);
 }
 
+
+/* ==================== DOSAGES PRODUITS ==================== */
+const PRODUCT_DOSAGES_KEY='vitalya_product_dosages_v1';
+let _productDosagesCache={};
+
+function getProductDosages(){return _productDosagesCache||{};}
+
+async function fbLoadProductDosages(){
+  if(!window._fbReady){
+    try{_productDosagesCache=JSON.parse(localStorage.getItem(PRODUCT_DOSAGES_KEY)||'{}')||{};}catch(e){_productDosagesCache={};}
+    return _productDosagesCache;
+  }
+  try{
+    const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/productDosages'));
+    _productDosagesCache=snap.exists()?(snap.val()||{}):{};
+    localStorage.setItem(PRODUCT_DOSAGES_KEY,JSON.stringify(_productDosagesCache));
+  }catch(e){console.error('Product dosages load',e);}
+  return _productDosagesCache;
+}
+async function fbSaveProductDosages(data){
+  _productDosagesCache=data||{};
+  localStorage.setItem(PRODUCT_DOSAGES_KEY,JSON.stringify(_productDosagesCache));
+  if(!window._fbReady)return;
+  try{await window._fbSet(window._fbRef(window._fbDb,'vitalya/productDosages'),_productDosagesCache);}
+  catch(e){console.error('Product dosages save',e);}
+}
+function fbListenProductDosages(){
+  if(!window._fbReady)return;
+  try{
+    window._fbOnValue(window._fbRef(window._fbDb,'vitalya/productDosages'),snap=>{
+      _productDosagesCache=snap.exists()?(snap.val()||{}):{};
+      localStorage.setItem(PRODUCT_DOSAGES_KEY,JSON.stringify(_productDosagesCache));
+      renderProductDosages();
+    });
+  }catch(e){}
+}
+function dosageFolders(){
+  return getLibraryFolders().map(f=>({id:f.id,name:f.name,icon:f.icon||'📁'}));
+}
+function openDosagePage(){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('dosagesPage')?.classList.add('active');
+  renderProductDosages();
+}
+function closeDosagePage(){
+  document.getElementById('dosagesPage')?.classList.remove('active');
+  switchTab('fiches');
+}
+function renderProductDosages(){
+  const el=document.getElementById('productDosagesList');if(!el)return;
+  const folders=dosageFolders();
+  const all=Object.values(getProductDosages()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  el.innerHTML=folders.map(f=>{
+    const rows=all.filter(x=>x.folderId===f.id);
+    return '<div class="dosage-client-card">'+
+      '<div class="dosage-client-head"><div class="dosage-client-icon">'+escapeHtml(f.icon)+'</div><div class="dosage-client-name">'+escapeHtml(f.name)+'</div><div class="dosage-client-count">'+rows.length+' dosage'+(rows.length!==1?'s':'')+'</div></div>'+
+      '<div class="dosage-list">'+(rows.length?rows.map(x=>{
+        const dosage=x.dosageType==='nozzle'?'Buse '+x.dosageValue:x.dosageValue+' g';
+        return '<div class="dosage-row"><div class="dosage-product"><div class="dosage-product-name">'+escapeHtml(x.productName)+'</div><div class="dosage-product-meta">Doseur : '+escapeHtml(x.doseur||'Non précisé')+'</div></div><div class="dosage-badge">'+escapeHtml(dosage)+'</div></div>';
+      }).join(''):'<div class="dosage-empty">Aucun produit renseigné pour le moment.</div>')+'</div></div>';
+  }).join('');
+}
+function showAddProductDosageModal(){
+  const folders=dosageFolders();
+  const options=folders.map(f=>'<option value="'+escapeHtml(f.id)+'">'+escapeHtml(f.name)+'</option>').join('');
+  showModal(
+    '<div class="modal-title">💧 Ajouter un dosage produit</div>'+
+    '<label class="dosage-label">Client</label>'+
+    '<select id="dosageClient" class="dosage-select"><option value="">Choisir le client…</option>'+options+'</select>'+
+    '<label class="dosage-label">Désignation du produit</label>'+
+    '<input id="dosageProductName" class="dosage-input" placeholder="Ex : Ecomax">'+
+    '<label class="dosage-label">Doseur utilisé</label>'+
+    '<input id="dosageDoseur" class="dosage-input" list="dosageDoseurOptions" placeholder="Ex : Accuratic DP, Revoflow…">'+
+    '<datalist id="dosageDoseurOptions">'+
+      '<option value="Accuratic DP"><option value="Accuratic DS"><option value="Revoflow"><option value="QFM"><option value="DQFM"><option value="Poste de désinfection">'+
+    '</datalist>'+
+    '<label class="dosage-label">Dosage</label>'+
+    '<div class="dosage-type-row">'+
+      '<button type="button" id="dosageTypeNozzle" class="dosage-type-btn active" onclick="setProductDosageType(\'nozzle\')">🌈 Couleur de buse</button>'+
+      '<button type="button" id="dosageTypeGram" class="dosage-type-btn" onclick="setProductDosageType(\'gram\')">⚖️ Grammage</button>'+
+    '</div>'+
+    '<div id="dosageNozzleWrap">'+
+      '<select id="dosageNozzle" class="dosage-select"><option value="">Choisir la couleur…</option><option>violette</option><option>jaune</option><option>bleue</option><option>rouge</option><option>verte</option><option>blanche</option><option>noire</option><option>orange</option><option>rose</option><option>grise</option><option>autre</option></select>'+
+    '</div>'+
+    '<div id="dosageGramWrap" style="display:none"><input id="dosageGram" class="dosage-input" type="number" min="0" step="0.1" placeholder="Ex : 1,5"></div>'+
+    '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="saveProductDosage()">✅ Enregistrer</button></div>'
+  );
+}
+function setProductDosageType(type){
+  document.getElementById('dosageTypeNozzle')?.classList.toggle('active',type==='nozzle');
+  document.getElementById('dosageTypeGram')?.classList.toggle('active',type==='gram');
+  const nw=document.getElementById('dosageNozzleWrap'),gw=document.getElementById('dosageGramWrap');
+  if(nw)nw.style.display=type==='nozzle'?'block':'none';
+  if(gw)gw.style.display=type==='gram'?'block':'none';
+}
+async function saveProductDosage(){
+  const folderId=document.getElementById('dosageClient')?.value||'';
+  const productName=document.getElementById('dosageProductName')?.value.trim()||'';
+  const doseur=document.getElementById('dosageDoseur')?.value.trim()||'';
+  const nozzle=document.getElementById('dosageNozzle')?.value||'';
+  const gram=document.getElementById('dosageGram')?.value||'';
+  const dosageType=document.getElementById('dosageTypeGram')?.classList.contains('active')?'gram':'nozzle';
+  if(!folderId){showToast('⚠️ Choisis le client',true);return;}
+  if(!productName){showToast('⚠️ Indique le produit',true);return;}
+  if(!doseur){showToast('⚠️ Indique le doseur utilisé',true);return;}
+  if(dosageType==='nozzle'&&!nozzle){showToast('⚠️ Choisis la couleur de buse',true);return;}
+  if(dosageType==='gram'&&(!gram||Number(gram)<=0)){showToast('⚠️ Indique le grammage',true);return;}
+  const data=getProductDosages();
+  const id='dosage-'+Date.now();
+  data[id]={id,folderId,productName,doseur,dosageType,dosageValue:dosageType==='nozzle'?nozzle:String(gram).replace(',','.'),createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||''};
+  await fbSaveProductDosages(data);
+  closeModal();renderProductDosages();showToast('✅ Dosage ajouté');
+}
+
 // Init — load Firebase data then render
 async function initApp() {
   // Load all shared data from Firebase
-  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders()]);
+  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages()]);
   renderAdminDocs();
   renderAdminStats();
   renderIaHistory();
@@ -5662,11 +5813,13 @@ async function initApp() {
   renderMachineRequests();
   renderAdminLibraryFolders();
   buildFichesList();
+  renderProductDosages();
   // Listen for real-time updates
   fbListenPhotos();
   fbListenCats();
   fbListenMachineRequests();
   fbListenApprovedMachines();
+  fbListenProductDosages();
 }
 
 // Wait for Firebase to be ready before init
