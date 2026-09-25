@@ -522,6 +522,31 @@ body {
 .tab-content { flex: 1; overflow: hidden; position: relative; }
 .tab-page { display: none; height: 100%; flex-direction: column; overflow: hidden; }
 .tab-page.active { display: flex; }
+/* ==================== MACHINES AJOUTÉES / VALIDATION ==================== */
+.machine-add-btn{width:34px;height:34px;border:none;border-radius:10px;background:rgba(59,206,172,.14);border:1px solid rgba(59,206,172,.28);color:var(--cyan);font-size:17px;cursor:pointer;flex-shrink:0}
+.machine-add-btn:active{transform:scale(.92)}
+.machine-card{background:rgba(255,255,255,.05);border:1px solid rgba(59,206,172,.22);border-radius:16px;padding:12px;margin-bottom:10px;cursor:pointer}
+.machine-card-head{display:flex;align-items:center;gap:10px}.machine-card-photo{width:64px;height:64px;border-radius:12px;object-fit:cover;flex-shrink:0;background:rgba(255,255,255,.06)}
+.machine-card-info{flex:1;min-width:0}.machine-card-name{font-size:15px;font-weight:800}.machine-card-meta{font-size:11px;color:var(--muted);margin-top:3px}.machine-card-arrow{color:var(--muted);font-size:20px}
+.machine-detail-photo{width:100%;max-height:260px;object-fit:cover;border-radius:14px;border:1px solid var(--border);margin-bottom:12px}
+.machine-branch{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:8px}
+.machine-branch-title{font-size:13px;font-weight:800;color:var(--cyan);margin-bottom:5px}.machine-branch-text{font-size:13px;line-height:1.55;color:var(--text);white-space:pre-wrap}
+.machine-request-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:12px;margin-bottom:10px}
+.machine-request-top{display:flex;gap:10px;align-items:center}.machine-request-photo{width:78px;height:78px;border-radius:12px;object-fit:cover;flex-shrink:0}.machine-request-info{flex:1;min-width:0}
+.machine-request-name{font-size:14px;font-weight:800}.machine-request-meta{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}.machine-request-branches{margin-top:10px}
+.machine-request-branch{background:rgba(255,255,255,.03);border-radius:9px;padding:8px 10px;margin-bottom:6px;font-size:12px;line-height:1.45}
+.machine-request-actions{display:flex;gap:8px;margin-top:10px}.machine-request-actions button{flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:800;font-family:'Outfit',sans-serif;cursor:pointer}
+.machine-approve{background:rgba(46,213,115,.14);color:#2ED573;border:1px solid rgba(46,213,115,.3)}.machine-reject{background:rgba(232,72,85,.12);color:#FF6B75;border:1px solid rgba(232,72,85,.28)}
+.machine-form-section{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:13px;margin-bottom:12px}
+.machine-form-step{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:800;color:var(--cyan)}
+.machine-step-num{width:24px;height:24px;border-radius:8px;background:rgba(59,206,172,.14);border:1px solid rgba(59,206,172,.28);display:flex;align-items:center;justify-content:center;font-size:11px}
+.machine-file-zone{border:2px dashed rgba(59,206,172,.32);border-radius:12px;padding:18px 14px;text-align:center;cursor:pointer}.machine-file-zone .icon{font-size:28px;margin-bottom:5px}.machine-file-zone .title{font-size:13px;font-weight:800}.machine-file-zone .sub{font-size:11px;color:var(--muted);margin-top:3px}
+.machine-preview{display:none;margin-top:10px}.machine-preview img{width:100%;max-height:190px;object-fit:cover;border-radius:12px}
+.machine-branch-row{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px;margin-bottom:8px}
+.machine-branch-head{display:flex;gap:8px;align-items:center}.machine-branch-index{width:24px;height:24px;border-radius:7px;background:rgba(108,99,255,.14);border:1px solid rgba(108,99,255,.28);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#A59DFF}
+.machine-remove-branch{margin-left:auto;border:none;border-radius:7px;padding:5px 8px;background:rgba(232,72,85,.1);color:#FF6B75;cursor:pointer}
+.machine-mini-note{font-size:11px;color:var(--muted);line-height:1.45}
+.machine-status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;font-size:11px;font-weight:800}.machine-status-pending{background:rgba(255,179,71,.12);color:#FFB347;border:1px solid rgba(255,179,71,.25)}.machine-status-approved{background:rgba(46,213,115,.12);color:#2ED573;border:1px solid rgba(46,213,115,.25)}.machine-status-rejected{background:rgba(232,72,85,.12);color:#FF6B75;border:1px solid rgba(232,72,85,.25)}
 
 /* FIX — Fiches : conteneur réellement défilable dès l'ouverture */
 #fichesPage { min-height: 0; }
@@ -1221,6 +1246,8 @@ body {
     </div>
     <div class="topbar-right">
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Mode clair/sombre">🌙</button>
+      <button class="machine-add-btn" onclick="showAddMachineModal()" title="Ajouter une machine">➕</button>
+      <button class="topbar-btn" onclick="showMyMachineRequests()" title="Mes demandes de machines">📨</button>
       <button class="topbar-btn" onclick="openPanel('histPanel')" title="Historique">🕐</button>
       <button class="topbar-btn" onclick="openPanel('favPanel')" title="Favoris">⭐</button>
       <button class="topbar-btn" onclick="exportConversation()" title="Exporter">📤</button>
@@ -1654,6 +1681,15 @@ body {
 
   <div class="admin-body">
 
+    <!-- VALIDATION DES MACHINES -->
+    <div class="admin-section">
+      <h3>🛠️ Machines à valider</h3>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+        Les techniciens peuvent proposer une machine avec sa photo et ses branchements. Rien n'est publié dans les Fiches avant votre validation.
+      </div>
+      <div id="machineRequestsList"><div class="machine-mini-note">Aucune demande en attente.</div></div>
+    </div>
+
     <!-- GESTION TECHNICIENS -->
     <div class="admin-section">
       <h3>👥 Gestion des Techniciens</h3>
@@ -1934,6 +1970,89 @@ async function restoreSession() {
   saveSession(user);
   showScreen('techScreen');
 }
+/* ==================== MACHINES — PROPOSITIONS TECHNICIENS ==================== */
+let _machineRequestsCache = {};
+let _approvedMachinesCache = {};
+let _machineBranchDraft = [];
+
+function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
+function getMachineRequests(){return _machineRequestsCache||{};}
+function getApprovedMachines(){return _approvedMachinesCache||{};}
+
+async function fbLoadMachineRequests(){
+  if(!window._fbReady)return getMachineRequests();
+  try{const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/machineRequests'));_machineRequestsCache=snap.exists()?(snap.val()||{}):{};return _machineRequestsCache;}
+  catch(e){console.error('Machine requests load',e);return getMachineRequests();}
+}
+async function fbSaveMachineRequests(data){_machineRequestsCache=data||{};if(!window._fbReady)return;try{await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests'),_machineRequestsCache);}catch(e){console.error('Machine requests save',e);}}
+async function fbLoadApprovedMachines(){
+  if(!window._fbReady)return getApprovedMachines();
+  try{const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/machines'));_approvedMachinesCache=snap.exists()?(snap.val()||{}):{};return _approvedMachinesCache;}
+  catch(e){console.error('Machines load',e);return getApprovedMachines();}
+}
+async function fbSaveApprovedMachines(data){_approvedMachinesCache=data||{};if(!window._fbReady)return;try{await window._fbSet(window._fbRef(window._fbDb,'vitalya/machines'),_approvedMachinesCache);}catch(e){console.error('Machines save',e);}}
+function fbListenMachineRequests(){if(!window._fbReady)return;try{window._fbOnValue(window._fbRef(window._fbDb,'vitalya/machineRequests'),snap=>{_machineRequestsCache=snap.exists()?(snap.val()||{}):{};renderMachineRequests();renderMyMachineRequestList();});}catch(e){}}
+function fbListenApprovedMachines(){if(!window._fbReady)return;try{window._fbOnValue(window._fbRef(window._fbDb,'vitalya/machines'),snap=>{_approvedMachinesCache=snap.exists()?(snap.val()||{}):{};buildFichesList();renderMyMachineRequestList();});}catch(e){}}
+
+function resetMachineDraft(){_machineBranchDraft=[];const file=document.getElementById('machinePhotoInput');if(file)file.value='';}
+function renderMachineBranchDraft(){
+  const wrap=document.getElementById('machineBranchesWrap');if(!wrap)return;
+  if(!_machineBranchDraft.length){wrap.innerHTML='<div class="machine-mini-note">Ajoutez au moins un branchement.</div>';return;}
+  wrap.innerHTML=_machineBranchDraft.map((b,i)=>'<div class="machine-branch-row"><div class="machine-branch-head"><div class="machine-branch-index">'+(i+1)+'</div><div style="font-size:12px;font-weight:800;">Branchement '+(i+1)+'</div><button class="machine-remove-branch" onclick="removeMachineBranch('+i+')">✕</button></div><input class="modal-input machine-branch-name" data-index="'+i+'" placeholder="Nom (ex : Détergent)" value="'+escapeHtml(b.name)+'" style="margin-bottom:7px;"><textarea class="modal-input machine-branch-desc" data-index="'+i+'" placeholder="Décris le branchement, la référence, l emplacement, la couleur..." style="min-height:78px;resize:vertical;margin-bottom:0;">'+escapeHtml(b.description)+'</textarea></div>').join('');
+  wrap.querySelectorAll('.machine-branch-name').forEach(el=>el.addEventListener('input',e=>_machineBranchDraft[+e.target.dataset.index].name=e.target.value));
+  wrap.querySelectorAll('.machine-branch-desc').forEach(el=>el.addEventListener('input',e=>_machineBranchDraft[+e.target.dataset.index].description=e.target.value));
+}
+function addMachineBranch(){_machineBranchDraft.push({name:'',description:''});renderMachineBranchDraft();setTimeout(()=>{const els=document.querySelectorAll('.machine-branch-name');els[els.length-1]?.focus();},50);}
+function removeMachineBranch(i){_machineBranchDraft.splice(i,1);renderMachineBranchDraft();}
+function previewMachinePhoto(input){const p=document.getElementById('machinePhotoPreview'),img=document.getElementById('machinePhotoImg');if(!p||!img)return;if(!input.files?.[0]){p.style.display='none';img.src='';return;}img.src=URL.createObjectURL(input.files[0]);p.style.display='block';}
+
+function showAddMachineModal(){
+  resetMachineDraft();
+  showModal('<div class="modal-title">➕ Ajouter une machine</div>'+
+    '<div class="machine-form-section"><div class="machine-form-step"><span class="machine-step-num">1</span> Photo de la machine</div><div class="machine-mini-note" style="margin-bottom:10px;">Prenez une photo claire de la machine.</div><div class="machine-file-zone" onclick="document.getElementById(\'machinePhotoInput\').click()"><div class="icon">📷</div><div class="title">Prendre une photo / choisir une image</div><div class="sub">Une photo obligatoire</div></div><input type="file" id="machinePhotoInput" accept="image/*" capture="environment" style="display:none;" onchange="previewMachinePhoto(this)"><div class="machine-preview" id="machinePhotoPreview"><img id="machinePhotoImg" alt="Aperçu machine"></div></div>'+
+    '<div class="machine-form-section"><div class="machine-form-step"><span class="machine-step-num">2</span> Informations machine</div><input class="modal-input" id="machineName" placeholder="Nom de la machine (ex : Lave-vaisselle Hobart)"><input class="modal-input" id="machineModel" placeholder="Modèle / référence (facultatif)"><textarea class="modal-input" id="machineNote" placeholder="Informations utiles (facultatif)" style="min-height:70px;resize:vertical;"></textarea></div>'+
+    '<div class="machine-form-section"><div class="machine-form-step"><span class="machine-step-num">3</span> Branchements</div><div class="machine-mini-note" style="margin-bottom:10px;">Ajoutez les branchements un par un. L admin les vérifiera avant publication.</div><div id="machineBranchesWrap"></div><button type="button" onclick="addMachineBranch()" style="width:100%;margin-top:8px;background:rgba(108,99,255,.12);border:1px solid rgba(108,99,255,.28);border-radius:10px;padding:10px;color:#A59DFF;font-family:Outfit,sans-serif;font-weight:800;cursor:pointer;">➕ Ajouter un branchement</button></div>'+
+    '<div class="machine-mini-note" style="margin:2px 0 12px;">🔒 Votre proposition reste invisible dans les Fiches tant qu elle n est pas validée.</div>'+
+    '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="submitMachineRequest()">📨 Envoyer pour validation</button></div>');
+  addMachineBranch();
+  setTimeout(()=>document.getElementById('machineName')?.focus(),100);
+}
+
+async function submitMachineRequest(){
+  const name=document.getElementById('machineName')?.value.trim(),model=document.getElementById('machineModel')?.value.trim(),note=document.getElementById('machineNote')?.value.trim(),file=document.getElementById('machinePhotoInput')?.files?.[0];
+  if(!name){showToast('⚠️ Nom de la machine obligatoire',true);return;}if(!file){showToast('⚠️ Ajoutez une photo de la machine',true);return;}
+  const branches=_machineBranchDraft.map(b=>({name:String(b.name||'').trim(),description:String(b.description||'').trim()})).filter(b=>b.name||b.description);
+  if(!branches.length){showToast('⚠️ Ajoutez au moins un branchement',true);return;}if(branches.some(b=>!b.name||!b.description)){showToast('⚠️ Complétez chaque branchement',true);return;}
+  const btn=document.querySelector('.modal-btn-primary');if(btn){btn.disabled=true;btn.textContent='⏳ Envoi...';}
+  try{
+    if(!window._fbReady)throw new Error('Firebase indisponible');
+    const fd=new FormData();fd.append('file',file);fd.append('upload_preset',CLOUDINARY_PRESET);fd.append('folder','vitalya/machines');
+    const resp=await fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY_CLOUD+'/image/upload',{method:'POST',body:fd});const data=await resp.json();if(!data.secure_url)throw new Error('Upload impossible');
+    const id='machine-'+Date.now(),requests=await fbLoadMachineRequests();
+    requests[id]={id,name,model,note,photoUrl:data.secure_url,branches,createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||'',status:'pending'};
+    await fbSaveMachineRequests(requests);closeModal();showToast('✅ Machine envoyée — en attente de validation admin');
+  }catch(e){console.error(e);if(btn){btn.disabled=false;btn.textContent='📨 Envoyer pour validation';}showToast('❌ Impossible d envoyer la machine',true);}
+}
+
+function renderMyMachineRequestList(){
+  const el=document.getElementById('myMachineRequestsList');if(!el||!currentUser)return;
+  const pending=Object.values(getMachineRequests()).filter(r=>r.createdBy===currentUser.id).map(r=>({...r,displayStatus:r.status||'pending'}));
+  const approved=Object.values(getApprovedMachines()).filter(r=>r.createdBy===currentUser.id).map(r=>({...r,displayStatus:'approved'}));
+  const all=pending.concat(approved).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  el.innerHTML=all.length?all.map(r=>{const st=r.displayStatus,cls=st==='approved'?'machine-status-approved':st==='rejected'?'machine-status-rejected':'machine-status-pending',lab=st==='approved'?'✅ Validée':st==='rejected'?'❌ Refusée':'⏳ En attente';return '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><div style="font-size:13px;font-weight:800;">'+escapeHtml(r.name)+'</div><span class="machine-status-badge '+cls+'">'+lab+'</span></div><div class="machine-mini-note">'+(r.model?escapeHtml(r.model)+' · ':'')+new Date(r.createdAt||Date.now()).toLocaleDateString('fr-FR')+'</div></div>';}).join(''):'<div class="machine-mini-note">Aucune demande pour le moment.</div>';
+}
+function showMyMachineRequests(){showModal('<div class="modal-title">📨 Mes demandes de machines</div><div class="machine-mini-note" style="margin-bottom:8px;">Les machines apparaissent dans les Fiches uniquement après validation de l admin.</div><div id="myMachineRequestsList"></div><div class="modal-btn-row" style="margin-top:14px;"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Fermer</button><button class="modal-btn modal-btn-primary" onclick="closeModal();showAddMachineModal()">➕ Nouvelle machine</button></div>');renderMyMachineRequestList();}
+
+function renderMachineRequests(){
+  const el=document.getElementById('machineRequestsList');if(!el)return;
+  const arr=Object.values(getMachineRequests()).filter(r=>!r.status||r.status==='pending').sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(!arr.length){el.innerHTML='<div class="machine-mini-note">✅ Aucune demande en attente.</div>';return;}
+  el.innerHTML=arr.map(r=>'<div class="machine-request-card"><div class="machine-request-top"><img class="machine-request-photo" src="'+escapeHtml(r.photoUrl)+'" alt=""><div class="machine-request-info"><div class="machine-request-name">'+escapeHtml(r.name)+'</div><div class="machine-request-meta">'+(r.model?escapeHtml(r.model)+'<br>':'')+'Proposée par : '+escapeHtml(r.createdByName||'Technicien')+'<br>'+new Date(r.createdAt||Date.now()).toLocaleString('fr-FR')+'</div></div></div>'+(r.note?'<div class="machine-mini-note" style="margin-top:9px;">'+escapeHtml(r.note)+'</div>':'')+'<div class="machine-request-branches">'+(r.branches||[]).map((b,i)=>'<div class="machine-request-branch"><strong>Branchement '+(i+1)+' — '+escapeHtml(b.name)+'</strong><br>'+escapeHtml(b.description)+'</div>').join('')+'</div><div class="machine-request-actions"><button class="machine-approve" onclick="approveMachineRequest(\''+r.id+'\')">✅ Valider</button><button class="machine-reject" onclick="rejectMachineRequest(\''+r.id+'\')">❌ Refuser</button></div></div>').join('');
+}
+async function approveMachineRequest(id){const requests=await fbLoadMachineRequests(),request=requests[id];if(!request){showToast('⚠️ Demande introuvable',true);return;}const machines=await fbLoadApprovedMachines();machines[id]={...request,status:'approved',approvedAt:Date.now(),approvedBy:currentUser?.id||'admin'};delete requests[id];await fbSaveApprovedMachines(machines);await fbSaveMachineRequests(requests);renderMachineRequests();buildFichesList();renderMyMachineRequestList();showToast('✅ Machine validée et publiée dans les Fiches');}
+async function rejectMachineRequest(id){const requests=await fbLoadMachineRequests();if(!requests[id])return;requests[id].status='rejected';requests[id].rejectedAt=Date.now();requests[id].rejectedBy=currentUser?.id||'admin';await fbSaveMachineRequests(requests);renderMachineRequests();renderMyMachineRequestList();showToast('❌ Proposition refusée');}
+
+function openMachineDetail(id){const m=getApprovedMachines()[id];if(!m)return;document.getElementById('fichesList').style.display='none';document.getElementById('galleryView').style.display='none';document.getElementById('ficheDetail').style.display='flex';document.getElementById('ficheTitle').textContent='🛠️ '+m.name;document.getElementById('ficheSubtitle').textContent=m.model||'Machine validée';let html=m.photoUrl?'<img class="machine-detail-photo" src="'+escapeHtml(m.photoUrl)+'" alt="'+escapeHtml(m.name)+'">':'';if(m.note)html+='<div class="info-box">'+escapeHtml(m.note)+'</div>';html+='<div class="fiche-section"><div class="fiche-section-title">🔌 Branchements</div>'+(m.branches||[]).map((b,i)=>'<div class="machine-branch"><div class="machine-branch-title">'+(i+1)+'. '+escapeHtml(b.name)+'</div><div class="machine-branch-text">'+escapeHtml(b.description)+'</div></div>').join('')+'</div>';document.getElementById('ficheContent').innerHTML=html;document.getElementById('ficheContent').scrollTop=0;}
 // =====================
 // LOGIN
 // =====================
@@ -1965,8 +2084,13 @@ async function doLogin() {
       renderAdminStats();
       renderIaHistory();
       renderUserList();
+      renderMachineRequests();
       fbListenPhotos();
       fbListenCats();
+      fbLoadMachineRequests().then(renderMachineRequests);
+      fbLoadApprovedMachines();
+      fbListenMachineRequests();
+      fbListenApprovedMachines();
     });
     return;
   }
@@ -3825,6 +3949,9 @@ function toggleTheme() {
 initTheme();
 
 // Restaurer automatiquement la dernière connexion si elle est encore valide.
+fbLoadMachineRequests();
+fbLoadApprovedMachines();
+
 window.addEventListener('load', () => { setTimeout(restoreSession, 0); });
 
 // =====================
@@ -4553,7 +4680,8 @@ function buildFichesList() {
   const staticFiches = container.querySelector('.cats-inner'); if (!staticFiches) return;
   const oldDyn = staticFiches.querySelector('.dynamic-cats-section'); if (oldDyn) oldDyn.remove();
   const catsWithPhotos = cats.filter(c => countPhotos(photos, c.id) > 0);
-  if (!catsWithPhotos.length) return;
+  const machineList = Object.values(getApprovedMachines()).filter(m => m.status === 'approved').sort((a,b) => (b.approvedAt||0) - (a.approvedAt||0));
+
   const dynSection = document.createElement('div'); dynSection.className = 'dynamic-cats-section';
   dynSection.innerHTML = `<div class="section-title" style="margin-top:20px;">📸 Galeries Photos</div>` +
     cats.map(cat => {
@@ -4563,7 +4691,13 @@ function buildFichesList() {
         <div class="cat-info"><div class="cat-name">${cat.name}</div><div class="cat-count">${total} photo${total!==1?'s':''}</div></div>
         <div class="cat-arrow">›</div></div>`;
     }).join('');
-  staticFiches.appendChild(dynSection);
+  if (catsWithPhotos.length) staticFiches.appendChild(dynSection);
+  const oldMachines = staticFiches.querySelector('.approved-machines-section'); if (oldMachines) oldMachines.remove();
+  if (machineList.length) {
+    const ms=document.createElement('div'); ms.className='approved-machines-section';
+    ms.innerHTML='<div class="section-title" style="margin-top:20px;">🛠️ Machines ajoutées</div>' + machineList.map(m => '<div class="machine-card" onclick="openMachineDetail(\''+m.id+'\')"><div class="machine-card-head"><img class="machine-card-photo" src="'+escapeHtml(m.photoUrl)+'" alt=""><div class="machine-card-info"><div class="machine-card-name">'+escapeHtml(m.name)+'</div><div class="machine-card-meta">'+(m.model?escapeHtml(m.model)+' · ':'')+(m.branches||[]).length+' branchement'+((m.branches||[]).length!==1?'s':'')+'</div></div><div class="machine-card-arrow">›</div></div></div>').join('');
+    staticFiches.appendChild(ms);
+  }
 }
 
 function openDynamicGallery(catId) {
