@@ -523,6 +523,76 @@ body {
 .tab-page { display: none; height: 100%; flex-direction: column; overflow: hidden; }
 .tab-page.active { display: flex; }
 
+/* ==================== INTERFACE ÉPURÉE ==================== */
+#techScreen .topbar-right .topbar-btn,
+#techScreen .topbar-right .theme-toggle { display:none; }
+#techScreen .topbar-right { gap:0; }
+#techScreen .quick-scroll { display:none; }
+
+.library-hero{
+  margin:0 0 14px;padding:18px;border-radius:20px;
+  background:linear-gradient(145deg,rgba(59,206,172,.12),rgba(10,36,99,.22));
+  border:1px solid rgba(59,206,172,.22);
+}
+.library-kicker{font-size:10px;font-weight:800;letter-spacing:1.6px;color:var(--cyan);margin-bottom:5px}
+.library-title{font-size:24px;font-weight:900;letter-spacing:-.5px}
+.library-sub{font-size:12px;line-height:1.5;color:var(--muted);margin-top:5px}
+.library-add-btn{
+  width:100%;margin-top:14px;border:0;border-radius:13px;padding:13px;
+  background:var(--cyan);color:var(--primary);font:800 14px 'Outfit',sans-serif;cursor:pointer;
+}
+.library-request-btn{
+  width:100%;margin-top:8px;border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:10px;
+  background:rgba(255,255,255,.04);color:var(--text);font:700 13px 'Outfit',sans-serif;cursor:pointer;
+}
+.library-root-folder{
+  border:1px solid rgba(255,255,255,.09);border-radius:15px;
+  background:rgba(255,255,255,.035);margin-bottom:9px;overflow:hidden;
+}
+.library-folder-head{
+  display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;
+}
+.library-folder-icon{
+  width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  background:rgba(244,162,97,.12);border:1px solid rgba(244,162,97,.24);font-size:20px;flex-shrink:0;
+}
+.library-folder-info{flex:1;min-width:0}
+.library-folder-name{font-size:14px;font-weight:800}
+.library-folder-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.library-chevron{font-size:19px;color:var(--muted);transition:transform .2s}
+.library-chevron.open{transform:rotate(90deg)}
+.library-folder-body{display:none;padding:0 10px 10px}
+.library-folder-body.open{display:block}
+.library-subfolder{
+  background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;margin-top:8px;overflow:hidden;
+}
+.library-subfolder-head{
+  display:flex;align-items:center;gap:9px;padding:11px 12px;cursor:pointer;
+}
+.library-subfolder-icon{font-size:17px}
+.library-subfolder-info{flex:1;min-width:0}
+.library-subfolder-name{font-size:13px;font-weight:750}
+.library-subfolder-meta{font-size:10px;color:var(--muted);margin-top:2px}
+.library-subfolder-body{display:none;padding:0 9px 9px}
+.library-subfolder-body.open{display:block}
+.library-model{
+  display:flex;align-items:center;gap:9px;padding:11px 10px;
+  border-radius:10px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);
+  margin-top:7px;cursor:pointer;
+}
+.library-model-icon{font-size:17px}
+.library-model-info{flex:1;min-width:0}
+.library-model-name{font-size:13px;font-weight:700}
+.library-model-meta{font-size:10px;color:var(--muted);margin-top:2px}
+.library-model-arrow{color:var(--muted);font-size:18px}
+.library-empty{padding:8px 2px 14px;color:var(--muted);font-size:12px}
+.machine-detail-breadcrumb{font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.media-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.media-card{position:relative;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);aspect-ratio:4/3}
+.media-card img,.media-card video{width:100%;height:100%;object-fit:cover;display:block}
+.media-video-badge{position:absolute;right:6px;top:6px;padding:4px 7px;border-radius:20px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;font-weight:800}
+
 /* ==================== NOUVEL ACCUEIL FICHES ==================== */
 .fiches-home-hero{
   margin:0 0 14px;
@@ -1298,8 +1368,7 @@ body {
     </div>
     <div class="topbar-right">
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Mode clair/sombre">🌙</button>
-      <button class="machine-add-btn" onclick="showAddMachineModal()" title="Ajouter une machine">➕</button>
-      <button class="topbar-btn" onclick="showMyMachineRequests()" title="Mes demandes de machines">📨</button>
+
       <button class="topbar-btn" onclick="openPanel('histPanel')" title="Historique">🕐</button>
       <button class="topbar-btn" onclick="openPanel('favPanel')" title="Favoris">⭐</button>
       <button class="topbar-btn" onclick="exportConversation()" title="Exporter">📤</button>
@@ -1368,137 +1437,17 @@ body {
     </div>
 
     <!-- FICHES TAB -->
-    <div class="tab-page active" id="fichesPage">
-      <!-- LIST VIEW -->
+          <div class="tab-page active" id="fichesPage">
       <div id="fichesList" class="fiches-list-scroll">
-
         <div class="cats-inner">
-
-          <div class="fiches-home-hero">
-            <div class="fiches-home-kicker">VITALYA · FICHES TERRAIN</div>
-            <div class="fiches-home-title">Machines & branchements</div>
-            <div class="fiches-home-sub">Retrouve les installations validées, leurs photos machine et tous leurs branchements.</div>
-            <button class="fiches-add-machine" onclick="showAddMachineModal()">➕ Ajouter une machine</button>
-            <button class="fiches-my-requests" onclick="showMyMachineRequests()">📨 Mes demandes</button>
+          <div class="library-hero">
+            <div class="library-kicker">VITALYA · BIBLIOTHÈQUE TERRAIN</div>
+            <div class="library-title">Fichiers & installations</div>
+            <div class="library-sub">Chaque système validé est rangé par type, puis par modèle / marque, avec ses photos et vidéos.</div>
+            <button class="library-add-btn" onclick="showAddMachineModal()">➕ Ajouter une machine</button>
+            <button class="library-request-btn" onclick="showMyMachineRequests()">📨 Mes demandes</button>
           </div>
-
-          <div class="section-title">🛠️ Machines validées</div>
-          <div id="approvedMachinesHome"></div>
-
-          <div class="section-title">📚 Fiches techniques</div>
-
-          <div class="cat-card" onclick="openFiche('lv-branchement')">
-            <div class="cat-icon blue">🔧</div>
-            <div class="cat-info">
-              <div class="cat-name">Branchement Lave-Vaisselle</div>
-              <div class="cat-count">Choix doseur · Types de machines</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
-          <div class="cat-card" onclick="openFiche('lv-installation')">
-            <div class="cat-icon red">⚙️</div>
-            <div class="cat-info">
-              <div class="cat-name">Installation Lave-Vaisselle</div>
-              <div class="cat-count">Checklist · Étapes · Vérifications</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
-          <div class="cat-card" onclick="openFiche('doseurs')">
-            <div class="cat-icon gold">💧</div>
-            <div class="cat-info">
-              <div class="cat-name">Installation Doseurs</div>
-              <div class="cat-count">D250 · D3000 · Revoflow · Accuratic</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
-          <div class="cat-card" onclick="openFiche('postes')">
-            <div class="cat-icon blue">🚿</div>
-            <div class="cat-info">
-              <div class="cat-name">Postes de Désinfection</div>
-              <div class="cat-count">Pré-requis · Pièces · QFM · DQFM</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
-          <div class="section-title" style="margin-top:20px;">📋 Dosages & Produits</div>
-
-          <div class="cat-card" onclick="openFiche('produits')">
-            <div class="cat-icon purple">🏷️</div>
-            <div class="cat-info">
-              <div class="cat-name">Produits & Code Couleur</div>
-              <div class="cat-count">Suma · TASKI · Clax · Sure</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
-          <div class="cat-card" onclick="openFiche('dosages-sodexo')">
-            <div class="cat-icon green">🍽️</div>
-            <div class="cat-info">
-              <div class="cat-name">Grille Dosage Sodexo</div>
-              <div class="cat-count">Suma · TASKI · Clax · Autres</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
-          <div class="cat-card" onclick="openFiche('dosages-elior')">
-            <div class="cat-icon red">🏢</div>
-            <div class="cat-info">
-              <div class="cat-name">Protocoles Elior</div>
-              <div class="cat-count">TACT · Dosages · Sécurité</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
-          <div class="cat-card" onclick="openFiche('tableau-gouttes')">
-            <div class="cat-icon blue">🔬</div>
-            <div class="cat-info">
-              <div class="cat-name">Tableau des Gouttes 2019</div>
-              <div class="cat-count">Contrôle concentration lessiviel</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
-          <div class="section-title" style="margin-top:20px;">⚡ Technique & Sécurité</div>
-
-          <div class="cat-card" onclick="openFiche('schemas')">
-            <div class="cat-icon blue">📐</div>
-            <div class="cat-info">
-              <div class="cat-name">Schémas Techniques</div>
-              <div class="cat-count">Kiehl · SafePack · Quattro Select</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
-          <div class="cat-card" onclick="openFiche('securite')">
-            <div class="cat-icon red">⚠️</div>
-            <div class="cat-info">
-              <div class="cat-name">Sécurité & EPI</div>
-              <div class="cat-count">EPI obligatoires · Habilitations · Crise</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
-          <div class="cat-card" onclick="openFiche('room-care')">
-            <div class="cat-icon blue">🏨</div>
-            <div class="cat-info">
-              <div class="cat-name">Gamme Room Care</div>
-              <div class="cat-count">R1 à R11 — Hôtellerie & entretien chambres</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
-          <div class="cat-card" onclick="openFiche('photos')">
-            <div class="cat-icon gold">📸</div>
-            <div class="cat-info">
-              <div class="cat-name">Galerie Photos</div>
-              <div class="cat-count">Photos terrain uploadées par l'admin</div>
-            </div>
-            <div class="cat-arrow">›</div>
-          </div>
-
+          <div id="machineLibraryHome"></div>
         </div>
       </div>
 
@@ -1709,29 +1658,19 @@ body {
 
   <!-- Tab bar — 4 onglets -->
   <div class="tabbar">
-    <div class="tab" id="tab-chat" onclick="switchTab('chat')">
-      <div class="tab-indicator"></div>
-      <div class="tab-icon">💬</div>
-      <div class="tab-label">Chat</div>
-    </div>
     <div class="tab active" id="tab-fiches" onclick="switchTab('fiches')">
       <div class="tab-indicator"></div>
-      <div class="tab-icon">📋</div>
-      <div class="tab-label">Fiches</div>
+      <div class="tab-icon">📁</div>
+      <div class="tab-label">Fichiers</div>
     </div>
-    <div class="tab" id="tab-search" onclick="switchTab('search')">
+    <div class="tab" id="tab-chat" onclick="switchTab('chat')">
       <div class="tab-indicator"></div>
-      <div class="tab-icon">🔍</div>
-      <div class="tab-label">Recherche</div>
-    </div>
-    <div class="tab" id="tab-calc" onclick="switchTab('calc')">
-      <div class="tab-indicator"></div>
-      <div class="tab-icon">🧮</div>
-      <div class="tab-label">Calcul</div>
+      <div class="tab-icon">🤖</div>
+      <div class="tab-label">Chat IA</div>
     </div>
   </div>
 
-</div>
+/div>
 
 <!-- ==================== ADMIN SCREEN ==================== -->
 <div class="screen" id="adminScreen">
@@ -2128,133 +2067,109 @@ function previewBranchPhotos(input){
 function showAddMachineModal(){
   resetMachineDraft();
   showModal(
-    '<div class="modal-title">➕ Ajouter une machine</div>' +
-    '<div class="machine-form-section">' +
-      '<div class="machine-form-step"><span class="machine-step-num">1</span> Quel système tu installes ?</div>' +
-      '<select id="machineSystemType" class="machine-system-select">' +
-        '<option value="">Choisir le système…</option>' +
-        '<option>Lave-vaisselle convoyeur</option>' +
-        '<option>Lave-vaisselle monobain</option>' +
-        '<option>Lave-batterie</option>' +
-        '<option>Lave-verres</option>' +
-        '<option>Doseur D250</option>' +
-        '<option>Doseur D3000</option>' +
-        '<option>Revoflow</option>' +
-        '<option>Accuratic</option>' +
-        '<option>Poste de désinfection</option>' +
-        '<option>QFM</option>' +
-        '<option>DQFM</option>' +
-        '<option>Autre</option>' +
-      '</select>' +
-      '<div id="machineOtherTypeWrap" style="display:none;">' +
-        '<input class="modal-input" id="machineOtherType" placeholder="Nom du système (ex : doseur spécial)">' +
-      '</div>' +
-    '</div>' +
-
-    '<div class="machine-form-section">' +
-      '<div class="machine-form-step"><span class="machine-step-num">2</span> Nom / marque de la machine</div>' +
-      '<input class="modal-input" id="machineSystemName" placeholder="Ex : Hobart, Winterhalter, Diversey D250…">' +
-      '<input class="modal-input" id="machineModel" placeholder="Modèle / référence (facultatif)">' +
-    '</div>' +
-
-    '<div class="machine-form-section">' +
-      '<div class="machine-form-step"><span class="machine-step-num">3</span> Photo de la machine ou du doseur</div>' +
-      '<div class="machine-form-note">Une photo principale est obligatoire.</div>' +
-      '<div class="machine-file-zone" onclick="document.getElementById(\'machinePhotoInput\').click()">' +
-        '<div class="icon">📷</div>' +
-        '<div class="title">Prendre une photo / choisir une image</div>' +
-        '<div class="sub">Photo principale</div>' +
-      '</div>' +
-      '<input type="file" id="machinePhotoInput" accept="image/*" capture="environment" style="display:none;" onchange="previewMachinePhoto(this)">' +
-      '<div class="machine-preview" id="machinePhotoPreview"><img id="machinePhotoImg" alt="Aperçu machine"></div>' +
-    '</div>' +
-
-    '<div class="machine-form-section">' +
-      '<div class="machine-form-step"><span class="machine-step-num">4</span> Photos des branchements</div>' +
-      '<div class="machine-form-note">Tu peux prendre une photo ou plusieurs photos. Elles seront toutes visibles dans la fiche après validation.</div>' +
-      '<div class="machine-file-zone" onclick="document.getElementById(\'branchPhotoInput\').click()">' +
-        '<div class="icon">🔌</div>' +
-        '<div class="title">Ajouter les photos des branchements</div>' +
-        '<div class="sub">Plusieurs photos possibles</div>' +
-      '</div>' +
-      '<input type="file" id="branchPhotoInput" accept="image/*" capture="environment" multiple style="display:none;" onchange="previewBranchPhotos(this)">' +
-      '<div id="branchPhotoCount" class="machine-file-count"></div>' +
-      '<div id="branchPhotoPreviewList" class="machine-request-photo-list"></div>' +
-    '</div>' +
-
-    '<div class="machine-form-note" style="margin:4px 0 12px;">🔒 La proposition reste en attente et ne sera visible par les techniciens qu’après validation admin.</div>' +
-    '<div class="modal-btn-row">' +
-      '<button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>' +
-      '<button class="modal-btn modal-btn-primary" onclick="submitMachineRequest()">📨 Envoyer</button>' +
-    '</div>'
+    '<div class="modal-title">➕ Ajouter un fichier machine</div>'+
+    '<div class="machine-form-section">'+
+      '<div class="machine-form-step"><span class="machine-step-num">1</span> Type de système</div>'+
+      '<select id="machineSystemType" class="machine-system-select">'+
+        '<option value="">Choisir…</option>'+
+        '<option>Lave-vaisselle convoyeur</option>'+
+        '<option>Lave-vaisselle monobain</option>'+
+        '<option>Lave-batterie</option>'+
+        '<option>Lave-verres</option>'+
+        '<option>Doseur D250</option>'+
+        '<option>Doseur D3000</option>'+
+        '<option>Revoflow</option>'+
+        '<option>Accuratic</option>'+
+        '<option>Poste de désinfection</option>'+
+        '<option>QFM</option><option>DQFM</option><option>Autre</option>'+
+      '</select>'+
+      '<div id="machineOtherTypeWrap" style="display:none;"><input class="modal-input" id="machineOtherType" placeholder="Nom du système"></div>'+
+    '</div>'+
+    '<div class="machine-form-section">'+
+      '<div class="machine-form-step"><span class="machine-step-num">2</span> Nom du modèle / marque</div>'+
+      '<input class="modal-input" id="machineSystemName" placeholder="Ex : Hobart, Winterhalter, D250…">'+
+      '<input class="modal-input" id="machineModel" placeholder="Référence / modèle (facultatif)">'+
+    '</div>'+
+    '<div class="machine-form-section">'+
+      '<div class="machine-form-step"><span class="machine-step-num">3</span> Photo machine / doseur</div>'+
+      '<div class="machine-file-zone" onclick="document.getElementById(\'machinePhotoInput\').click()"><div class="icon">📷</div><div class="title">Ajouter la photo principale</div><div class="sub">1 photo obligatoire</div></div>'+
+      '<input type="file" id="machinePhotoInput" accept="image/*" capture="environment" style="display:none" onchange="previewMachinePhoto(this)">'+
+      '<div class="machine-preview" id="machinePhotoPreview"><img id="machinePhotoImg" alt=""></div>'+
+    '</div>'+
+    '<div class="machine-form-section">'+
+      '<div class="machine-form-step"><span class="machine-step-num">4</span> Photos / vidéos des branchements</div>'+
+      '<div class="machine-file-zone" onclick="document.getElementById(\'branchMediaInput\').click()"><div class="icon">📸</div><div class="title">Ajouter les branchements</div><div class="sub">Photos et vidéos · plusieurs fichiers</div></div>'+
+      '<input type="file" id="branchMediaInput" accept="image/*,video/*" multiple style="display:none" onchange="previewBranchPhotos(this)">'+
+      '<div id="branchPhotoCount" class="machine-file-count"></div>'+
+      '<div id="branchPhotoPreviewList" class="machine-request-photo-list"></div>'+
+    '</div>'+
+    '<div class="machine-form-note" style="margin:2px 0 12px">🔒 Le fichier restera invisible dans la bibliothèque tant que l’administrateur ne l’a pas validé.</div>'+
+    '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="submitMachineRequest()">📨 Envoyer</button></div>'
   );
 
-  document.getElementById('machineSystemType')?.addEventListener('change', function(){
-    const wrap = document.getElementById('machineOtherTypeWrap');
-    if(wrap) wrap.style.display = this.value === 'Autre' ? 'block' : 'none';
+  document.getElementById('machineSystemType')?.addEventListener('change',function(){
+    const wrap=document.getElementById('machineOtherTypeWrap');
+    if(wrap)wrap.style.display=this.value==='Autre'?'block':'none';
   });
 }
-
-async function uploadMachineImage(file, folder){
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('upload_preset', CLOUDINARY_PRESET);
-  fd.append('folder', folder);
-  const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload',{method:'POST',body:fd});
-  const data = await resp.json();
-  if(!data.secure_url) throw new Error('Upload image impossible');
-  return data.secure_url;
+function previewBranchPhotos(input){
+  const files=Array.from(input.files||[]);
+  _machineDraft.branchFiles=files;
+  const count=document.getElementById('branchPhotoCount');
+  const preview=document.getElementById('branchPhotoPreviewList');
+  if(count)count.textContent=files.length?'✅ '+files.length+' média'+(files.length>1?'s':'')+' sélectionné'+(files.length>1?'s':''):'';
+  if(preview)preview.innerHTML=files.map(f=>{
+    const type=/^video\//i.test(f.type)?'video':'image';
+    const src=URL.createObjectURL(f);
+    return type==='video'?'<video src="'+src+'" controls style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px"></video>':'<img src="'+src+'" alt="">';
+  }).join('');
+}
+async function uploadMachineMedia(file,folder){
+  const fd=new FormData();
+  fd.append('file',file);
+  fd.append('upload_preset',CLOUDINARY_PRESET);
+  fd.append('folder',folder);
+  const resp=await fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY_CLOUD+'/auto/upload',{method:'POST',body:fd});
+  const data=await resp.json();
+  if(!data.secure_url)throw new Error('Upload impossible');
+  return {url:data.secure_url,type:data.resource_type==='video'?'video':'image',name:data.original_filename||file.name};
 }
 
 async function submitMachineRequest(){
-  const typeSelect = document.getElementById('machineSystemType');
-  const systemType = typeSelect?.value === 'Autre'
-    ? (document.getElementById('machineOtherType')?.value.trim() || '')
-    : (typeSelect?.value || '');
-  const systemName = document.getElementById('machineSystemName')?.value.trim();
-  const model = document.getElementById('machineModel')?.value.trim();
-  const machineFile = document.getElementById('machinePhotoInput')?.files?.[0];
-  const branchFiles = _machineDraft.branchFiles || [];
+  const typeSelect=document.getElementById('machineSystemType');
+  const systemType=typeSelect?.value==='Autre' ? (document.getElementById('machineOtherType')?.value.trim()||'') : (typeSelect?.value||'');
+  const systemName=document.getElementById('machineSystemName')?.value.trim();
+  const model=document.getElementById('machineModel')?.value.trim();
+  const machineFile=document.getElementById('machinePhotoInput')?.files?.[0];
+  const branchFiles=_machineDraft.branchFiles||[];
 
-  if(!systemType){ showToast('⚠️ Choisis le système installé',true); return; }
-  if(!systemName){ showToast('⚠️ Indique le nom ou la marque de la machine',true); return; }
-  if(!machineFile){ showToast('⚠️ Ajoute la photo de la machine ou du doseur',true); return; }
-  if(!branchFiles.length){ showToast('⚠️ Ajoute au moins une photo de branchement',true); return; }
+  if(!systemType){showToast('⚠️ Choisis le type de système',true);return;}
+  if(!systemName){showToast('⚠️ Indique le nom du modèle / la marque',true);return;}
+  if(!machineFile){showToast('⚠️ Ajoute la photo de la machine ou du doseur',true);return;}
+  if(!branchFiles.length){showToast('⚠️ Ajoute au moins une photo ou vidéo de branchement',true);return;}
 
-  const btn = document.querySelector('.modal-btn-primary');
-  if(btn){ btn.disabled=true; btn.textContent='⏳ Envoi des photos…'; }
+  const btn=document.querySelector('.modal-btn-primary');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Envoi…';}
 
   try{
-    if(!window._fbReady) throw new Error('Firebase indisponible');
+    if(!window._fbReady)throw new Error('Firebase indisponible');
+    const machinePhoto=await uploadMachineMedia(machineFile,'vitalya/machines');
+    const branchMedia=[];
+    for(const file of branchFiles)branchMedia.push(await uploadMachineMedia(file,'vitalya/machines/media'));
 
-    const machinePhotoUrl = await uploadMachineImage(machineFile,'vitalya/machines');
-    const branchPhotos = [];
-    for(const file of branchFiles){
-      branchPhotos.push(await uploadMachineImage(file,'vitalya/machines/branchements'));
-    }
-
-    const requests = await fbLoadMachineRequests();
-    const id = 'machine-' + Date.now();
-    requests[id] = {
-      id,
-      systemType,
-      systemName,
-      model,
-      machinePhotoUrl,
-      branchPhotos,
-      createdAt: Date.now(),
-      createdBy: currentUser?.id || '',
-      createdByName: currentUser?.name || '',
-      status: 'pending'
+    const requests=await fbLoadMachineRequests();
+    const id='machine-'+Date.now();
+    requests[id]={
+      id,systemType,systemName,model,machinePhoto,branchMedia,
+      createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||'',status:'pending'
     };
     await fbSaveMachineRequests(requests);
-
     closeModal();
-    showToast('✅ Machine envoyée — attente de validation admin');
+    showToast('✅ Fichier envoyé — attente de validation admin');
   }catch(e){
     console.error(e);
-    if(btn){ btn.disabled=false; btn.textContent='📨 Envoyer'; }
-    showToast('❌ Impossible d’envoyer les photos',true);
+    if(btn){btn.disabled=false;btn.textContent='📨 Envoyer';}
+    showToast('❌ Impossible d’envoyer les médias',true);
   }
 }
 
@@ -2293,39 +2208,25 @@ function showMyMachineRequests(){
   renderMyMachineRequestList();
 }
 
+function renderMediaThumbs(media){
+  return (media||[]).map(x=>{
+    const item=typeof x==='string'?{url:x,type:mediaKind(x)}:x;
+    if(item.type==='video')return '<div style="border-radius:9px;overflow:hidden;background:#000"><video src="'+escapeHtml(item.url)+'" controls preload="metadata" style="width:100%;height:90px;object-fit:cover"></video></div>';
+    return '<img src="'+escapeHtml(item.url)+'" alt="">';
+  }).join('');
+}
 function renderMachineRequests(){
-  const el = document.getElementById('machineRequestsList');
-  if(!el) return;
-  const arr = Object.values(getMachineRequests())
-    .filter(r => !r.status || r.status === 'pending')
-    .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-
-  if(!arr.length){
-    el.innerHTML = '<div class="machine-mini-note">✅ Aucune demande en attente.</div>';
-    return;
-  }
-
-  el.innerHTML = arr.map(r => {
-    const branchPhotos = r.branchPhotos || [];
-    return '<div class="machine-request-card">' +
-      '<div class="machine-request-top">' +
-        '<img class="machine-request-photo" src="' + escapeHtml(r.machinePhotoUrl || r.photoUrl || '') + '" alt="">' +
-        '<div class="machine-request-info">' +
-          '<span class="fiches-system-chip">' + escapeHtml(r.systemType || '') + '</span>' +
-          '<div class="machine-request-name">' + escapeHtml(r.systemName || r.name || '') + '</div>' +
-          '<div class="machine-request-meta">' +
-            (r.model ? escapeHtml(r.model) + '<br>' : '') +
-            'Proposée par : ' + escapeHtml(r.createdByName || 'Technicien') + '<br>' +
-            new Date(r.createdAt||Date.now()).toLocaleString('fr-FR') +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-      (branchPhotos.length ? '<div class="machine-request-photo-list">' + branchPhotos.map(u=>'<img src="' + escapeHtml(u) + '" alt="Branchement">').join('') + '</div>' : '') +
-      '<div class="machine-request-actions">' +
-        '<button class="machine-approve" onclick="approveMachineRequest(\'' + r.id + '\')">✅ Valider</button>' +
-        '<button class="machine-reject" onclick="rejectMachineRequest(\'' + r.id + '\')">❌ Refuser</button>' +
-      '</div>' +
-    '</div>';
+  const el=document.getElementById('machineRequestsList');if(!el)return;
+  const arr=Object.values(getMachineRequests()).filter(r=>!r.status||r.status==='pending').sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(!arr.length){el.innerHTML='<div class="machine-mini-note">✅ Aucune demande en attente.</div>';return;}
+  el.innerHTML=arr.map(r=>{
+    const media=r.branchMedia||r.branchPhotos||[];
+    return '<div class="machine-request-card">'+
+      '<div class="machine-request-top"><img class="machine-request-photo" src="'+escapeHtml(r.machinePhoto?.url||r.machinePhotoUrl||r.photoUrl||'')+'" alt="">'+
+      '<div class="machine-request-info"><span class="fiches-system-chip">'+escapeHtml(r.systemType||'')+'</span><div class="machine-request-name">'+escapeHtml(r.systemName||r.name||'')+'</div><div class="machine-request-meta">'+(r.model?escapeHtml(r.model)+'<br>':'')+'Proposée par : '+escapeHtml(r.createdByName||'Technicien')+'<br>'+new Date(r.createdAt||Date.now()).toLocaleString('fr-FR')+'</div></div></div>'+
+      (media.length?'<div class="machine-request-photo-list">'+renderMediaThumbs(media)+'</div>':'')+
+      '<div class="machine-request-actions"><button class="machine-approve" onclick="approveMachineRequest(\''+r.id+'\')">✅ Valider</button><button class="machine-reject" onclick="rejectMachineRequest(\''+r.id+'\')">❌ Refuser</button></div>'+
+      '</div>';
   }).join('');
 }
 
@@ -2364,40 +2265,43 @@ async function rejectMachineRequest(id){
 }
 
 function openMachineDetail(id){
-  const m = getApprovedMachines()[id];
-  if(!m) return;
+  const m=getApprovedMachines()[id];
+  if(!m)return;
 
   document.getElementById('fichesList').style.display='none';
   document.getElementById('galleryView').style.display='none';
   document.getElementById('ficheDetail').style.display='flex';
 
-  document.getElementById('ficheTitle').textContent = '🛠️ ' + (m.systemName || m.name || 'Machine');
-  document.getElementById('ficheSubtitle').textContent = m.systemType || 'Machine validée';
+  const g=libraryGroupForMachine(m);
+  const media=normalizeMachineMedia(m);
+  const modelLabel=m.systemName || m.model || 'Sans nom';
 
-  let html = '';
-  if(m.machinePhotoUrl || m.photoUrl){
-    html += '<img class="machine-detail-photo" src="' + escapeHtml(m.machinePhotoUrl || m.photoUrl) + '" alt="">';
+  document.getElementById('ficheTitle').textContent='📁 '+modelLabel;
+  document.getElementById('ficheSubtitle').textContent=m.model ? (m.systemType+' · '+m.model) : (m.systemType||'Installation');
+
+  let html='<div class="machine-detail-breadcrumb">Fichiers › '+escapeHtml(g.root)+(g.sub?' › '+escapeHtml(g.sub):'')+' › '+escapeHtml(modelLabel)+'</div>';
+  html+='<div class="fiche-section"><div class="fiche-section-title">🛠️ Installation</div>';
+  html+='<div class="fiche-row"><div class="fiche-key">Système</div><div class="fiche-val">'+escapeHtml(m.systemType||'')+'</div></div>';
+  html+='<div class="fiche-row"><div class="fiche-key">Modèle / marque</div><div class="fiche-val"><strong>'+escapeHtml(m.systemName||m.model||'')+'</strong></div></div>';
+  if(m.model) html+='<div class="fiche-row"><div class="fiche-key">Référence</div><div class="fiche-val">'+escapeHtml(m.model)+'</div></div>';
+  html+='</div>';
+
+  html+='<div class="fiche-section"><div class="fiche-section-title">📂 Photos & vidéos</div>';
+  if(media.length){
+    html+='<div class="media-grid">'+media.map(x=>{
+      if(x.type==='video'){
+        return '<div class="media-card"><video src="'+escapeHtml(x.url)+'" controls playsinline preload="metadata"></video><div class="media-video-badge">▶ VIDÉO</div></div>';
+      }
+      return '<div class="media-card" onclick="openLightbox(\''+escapeHtml(x.url)+'\',\''+escapeHtml(x.name||'Photo')+'\')"><img src="'+escapeHtml(x.url)+'" alt=""></div>';
+    }).join('')+'</div>';
+  }else{
+    html+='<div class="library-empty">Aucun média.</div>';
   }
-  html += '<div class="fiche-section"><div class="fiche-section-title">🏷️ Système</div>' +
-    '<div class="fiche-row"><div class="fiche-key">Type</div><div class="fiche-val">' + escapeHtml(m.systemType || '') + '</div></div>' +
-    '<div class="fiche-row"><div class="fiche-key">Nom / marque</div><div class="fiche-val"><strong>' + escapeHtml(m.systemName || m.name || '') + '</strong></div></div>' +
-    (m.model ? '<div class="fiche-row"><div class="fiche-key">Modèle</div><div class="fiche-val">' + escapeHtml(m.model) + '</div></div>' : '') +
-    '</div>';
-
-  const branchPhotos = m.branchPhotos || [];
-  if(branchPhotos.length){
-    html += '<div class="fiche-section"><div class="fiche-section-title">🔌 Photos des branchements</div><div class="machine-branch-gallery">' +
-      branchPhotos.map(u=>'<img src="' + escapeHtml(u) + '" onclick="openLightbox(\'' + escapeHtml(u) + '\',\'Branchement\')" alt="Branchement">').join('') +
-      '</div></div>';
-  }else if(Array.isArray(m.branches) && m.branches.length){
-    html += '<div class="fiche-section"><div class="fiche-section-title">🔌 Branchements</div>' +
-      m.branches.map((b,i)=>'<div class="machine-branch"><div class="machine-branch-title">' + (i+1) + '. ' + escapeHtml(b.name) + '</div><div class="machine-branch-text">' + escapeHtml(b.description) + '</div></div>').join('') +
-      '</div>';
-  }
-
-  document.getElementById('ficheContent').innerHTML = html;
+  html+='</div>';
+  document.getElementById('ficheContent').innerHTML=html;
   document.getElementById('ficheContent').scrollTop=0;
 }
+
 // =====================
 // LOGIN
 // =====================
@@ -5023,58 +4927,103 @@ function showModal(html) { document.getElementById('modalContent').innerHTML = h
 function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
 document.getElementById('modalOverlay')?.addEventListener('click', function(e) { if(e.target===this) closeModal(); });
 
+function libraryGroupForMachine(m){
+  const t = String(m.systemType || 'Autre').toLowerCase();
+  if(t.includes('lave-vaisselle') && t.includes('monobain')) return {root:'Lave-vaisselle',sub:'Monobain'};
+  if(t.includes('lave-vaisselle') && t.includes('convoyeur')) return {root:'Lave-vaisselle',sub:'Convoyeur'};
+  if(t.includes('lave-vaisselle')) return {root:'Lave-vaisselle',sub:'Autres'};
+  return {root:m.systemType || 'Autre',sub:null};
+}
+function mediaKind(url,type){
+  const t=String(type||'').toLowerCase();
+  if(t==='video' || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(String(url||''))) return 'video';
+  return 'image';
+}
+function normalizeMachineMedia(m){
+  const out=[];
+  const primary=m.machinePhoto || (m.machinePhotoUrl ? {url:m.machinePhotoUrl,type:'image'} : (m.photoUrl ? {url:m.photoUrl,type:'image'} : null));
+  if(primary?.url) out.push({...primary,type:mediaKind(primary.url,primary.type),primary:true});
+  const src=m.branchMedia || m.branchPhotos || [];
+  for(const item of src){
+    const x=typeof item==='string' ? {url:item,type:mediaKind(item)} : item;
+    if(x?.url) out.push({...x,type:mediaKind(x.url,x.type),primary:false});
+  }
+  return out;
+}
 function buildFichesList(){
-  const cats = getCats();
-  const photos = getPhotos();
-  const container = document.getElementById('fichesList');
-  if(!container) return;
-  const staticFiches = container.querySelector('.cats-inner');
-  if(!staticFiches) return;
+  const mount=document.getElementById('machineLibraryHome');
+  if(!mount) return;
+  const machines=Object.values(getApprovedMachines())
+    .filter(m=>m.status==='approved')
+    .sort((a,b)=>(b.approvedAt||b.createdAt||0)-(a.approvedAt||a.createdAt||0));
 
-  const machineHome = document.getElementById('approvedMachinesHome');
-  if(machineHome){
-    const machineList = Object.values(getApprovedMachines())
-      .filter(m=>m.status==='approved')
-      .sort((a,b)=>(b.approvedAt||0)-(a.approvedAt||0));
-
-    machineHome.innerHTML = machineList.length
-      ? '<div class="fiches-machine-grid">' + machineList.map(m =>
-          '<div class="fiches-machine-card" onclick="openMachineDetail(\'' + m.id + '\')">' +
-            '<img class="fiches-machine-photo" src="' + escapeHtml(m.machinePhotoUrl || m.photoUrl || '') + '" alt="">' +
-            '<div class="fiches-machine-info">' +
-              '<span class="fiches-system-chip">' + escapeHtml(m.systemType || 'Système') + '</span>' +
-              '<div class="fiches-machine-name">' + escapeHtml(m.systemName || m.name || 'Machine') + '</div>' +
-              '<div class="fiches-machine-meta">' +
-                (m.model ? escapeHtml(m.model) + ' · ' : '') +
-                ((m.branchPhotos || []).length || (m.branches || []).length) + ' photo' +
-                ((((m.branchPhotos || []).length || (m.branches || []).length) !== 1) ? 's' : '') +
-                ' de branchement' +
-              '</div>' +
-            '</div>' +
-            '<div class="fiches-machine-arrow">›</div>' +
-          '</div>'
-        ).join('') + '</div>'
-      : '<div class="machine-form-note" style="padding:2px 0 4px;">Aucune machine validée pour le moment. Ajoute la première avec le bouton ci-dessus.</div>';
+  if(!machines.length){
+    mount.innerHTML='<div class="library-empty">Aucun fichier validé pour le moment.</div>';
+    return;
   }
 
-  const oldDyn = staticFiches.querySelector('.dynamic-cats-section');
-  if(oldDyn) oldDyn.remove();
+  const roots={};
+  machines.forEach(m=>{
+    const g=libraryGroupForMachine(m);
+    roots[g.root] ||= {};
+    const sub=g.sub || '__direct__';
+    roots[g.root][sub] ||= [];
+    roots[g.root][sub].push(m);
+  });
 
-  const catsWithPhotos = cats.filter(c=>countPhotos(photos,c.id)>0);
-  if(catsWithPhotos.length){
-    const dynSection = document.createElement('div');
-    dynSection.className='dynamic-cats-section';
-    dynSection.innerHTML =
-      '<div class="section-title" style="margin-top:20px;">📸 Galeries Photos</div>' +
-      catsWithPhotos.map(cat => {
-        const total = countPhotos(photos,cat.id);
-        return '<div class="cat-card" onclick="openDynamicGallery(\'' + cat.id + '\')">' +
-          '<div class="cat-icon blue">' + cat.icon + '</div>' +
-          '<div class="cat-info"><div class="cat-name">' + escapeHtml(cat.name) + '</div><div class="cat-count">' +
-          total + ' photo' + (total!==1?'s':'') + '</div></div><div class="cat-arrow">›</div></div>';
-      }).join('');
-    staticFiches.appendChild(dynSection);
-  }
+  let html='';
+  Object.entries(roots).forEach(([root,subs],ri)=>{
+    const rootId='lib-root-'+ri;
+    const total=Object.values(subs).reduce((n,a)=>n+a.length,0);
+    html += '<div class="library-root-folder">'+
+      '<div class="library-folder-head" onclick="toggleLibraryFolder(\''+rootId+'\')">'+
+        '<div class="library-folder-icon">📁</div>'+
+        '<div class="library-folder-info"><div class="library-folder-name">'+escapeHtml(root)+'</div><div class="library-folder-meta">'+total+' fichier'+(total!==1?'s':'')+'</div></div>'+
+        '<div class="library-chevron" id="'+rootId+'-chev">›</div>'+
+      '</div>'+
+      '<div class="library-folder-body" id="'+rootId+'">';
+
+    Object.entries(subs).forEach(([sub,items],si)=>{
+      const subId=rootId+'-sub-'+si;
+      if(sub==='__direct__'){
+        items.forEach((m,mi)=>{
+          html += renderLibraryModel(m,root,sub,null,mi);
+        });
+      }else{
+        html += '<div class="library-subfolder">'+
+          '<div class="library-subfolder-head" onclick="toggleLibraryFolder(\''+subId+'\')">'+
+            '<div class="library-subfolder-icon">📂</div>'+
+            '<div class="library-subfolder-info"><div class="library-subfolder-name">'+escapeHtml(sub)+'</div><div class="library-subfolder-meta">'+items.length+' fichier'+(items.length!==1?'s':'')+'</div></div>'+
+            '<div class="library-chevron" id="'+subId+'-chev">›</div>'+
+          '</div>'+
+          '<div class="library-subfolder-body" id="'+subId+'">'+
+            items.map((m,mi)=>renderLibraryModel(m,root,sub,subId,mi)).join('')+
+          '</div>'+
+        '</div>';
+      }
+    });
+    html += '</div></div>';
+  });
+  mount.innerHTML=html;
+}
+function renderLibraryModel(m,root,sub,parentId,mi){
+  const media=normalizeMachineMedia(m);
+  const label=m.systemName || m.model || 'Sans nom';
+  const detail=m.model && m.systemName ? m.model : '';
+  return '<div class="library-model" onclick="openMachineDetail(\''+m.id+'\')">'+
+    '<div class="library-model-icon">📄</div>'+
+    '<div class="library-model-info">'+
+      '<div class="library-model-name">'+escapeHtml(label)+'</div>'+
+      '<div class="library-model-meta">'+escapeHtml(detail || (m.model||''))+' · '+media.length+' média'+(media.length!==1?'s':'')+'</div>'+
+    '</div>'+
+    '<div class="library-model-arrow">›</div>'+
+  '</div>';
+}
+function toggleLibraryFolder(id){
+  const body=document.getElementById(id),chev=document.getElementById(id+'-chev');
+  if(!body)return;
+  body.classList.toggle('open');
+  if(chev)chev.classList.toggle('open');
 }
 
 function openDynamicGallery(catId) {
