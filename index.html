@@ -3027,7 +3027,30 @@ function globalSearch(q){
     '</div>'
   ).join('');
 }
-function buildGlobalSearchIndex(){ return []; }
+function buildGlobalSearchIndex(){
+  const items=[];
+  const add=function(icon,title,meta,keywords,action){items.push({icon:icon||'🔎',title:String(title||''),meta:String(meta||''),keywords:String(keywords||''),action:action||function(){}});};
+  if(typeof SEARCH_DB!=='undefined'){SEARCH_DB.forEach(function(x){add('📄',x.title,x.cat,x.title+' '+x.body+' '+x.cat,function(){switchTab('fiches');});});}
+  getLibraryFolders().forEach(function(f){
+    add(f.icon||'📁',f.name,'Dossier',f.name,function(){switchTab('fiches');});
+    (f.subs||[]).forEach(function(sub){add('📂',sub.name,f.name+' · Sous-dossier',f.name+' '+sub.name,function(){switchTab('fiches');});});
+  });
+  Object.values(getApprovedMachines()).filter(function(m){return m.status==='approved';}).forEach(function(m){
+    const folder=getLibraryFolders().find(function(f){return f.id===m.folderId;});
+    const name=m.systemName||m.model||'Système de dosage';
+    add('⚙️',name,[folder?folder.name:'',m.systemType,m.model].filter(Boolean).join(' · '),[name,m.systemType,m.model,folder?folder.name:''].filter(Boolean).join(' '),function(){switchTab('fiches');openMachineDetail(m.id);});
+  });
+  const names={};dosageFolders().forEach(function(f){names[f.id]=f.name;});
+  Object.values(getProductDosages()).forEach(function(d){
+    const dosage=d.dosageType==='free'?d.dosageValue:(d.dosageType==='nozzle'?'Buse '+d.dosageValue:d.dosageValue+' g');
+    add('💧',d.productName||'Produit',[names[d.folderId]||'',d.doseur||'',dosage].filter(Boolean).join(' · '),[d.productName,d.doseur,d.dosageValue,names[d.folderId]].filter(Boolean).join(' '),function(){switchTab('dosages');setTimeout(function(){scrollToDosageItem(d.id);},60);});
+  });
+  Object.values(getMachineDosageSystems()).forEach(function(sys){
+    const folder=getLibraryFolders().find(function(f){return f.id===sys.folderId;});
+    add('⚙️',sys.name||'Doseur',folder?folder.name:'',sys.name+' '+(folder?folder.name:''),function(){switchTab('fiches');setTimeout(function(){showAddMachineModal(sys.folderId,sys.subfolderId,sys.name);},60);});
+  });
+  return items;
+}
 function scrollToDosageItem(id){
   const el=document.getElementById('dosage-item-'+CSS.escape(String(id)));
   if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
