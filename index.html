@@ -770,7 +770,7 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
 .machine-request-name{font-size:14px;font-weight:800}.machine-request-meta{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}.machine-request-branches{margin-top:10px}
 .machine-request-branch{background:rgba(255,255,255,.03);border-radius:9px;padding:8px 10px;margin-bottom:6px;font-size:12px;line-height:1.45}
 .machine-request-actions{display:flex;gap:8px;margin-top:10px}.machine-request-actions button{flex:1;border-radius:10px;padding:10px;font-size:13px;font-weight:800;font-family:'Outfit',sans-serif;cursor:pointer}
-.machine-approve{background:rgba(46,213,115,.14);color:#2ED573;border:1px solid rgba(46,213,115,.3)}.machine-reject{background:rgba(232,72,85,.12);color:#FF6B75;border:1px solid rgba(232,72,85,.28)}
+.machine-approve{background:rgba(46,213,115,.14);color:#2ED573;border:1px solid rgba(46,213,115,.3)}.machine-reject{background:rgba(232,72,85,.12);color:#FF6B75;border:1px solid rgba(232,72,85,.28)}.machine-delete-rejected{flex-shrink:0;border:1px solid rgba(232,72,85,.3);background:rgba(232,72,85,.10);color:#FF6B75;border-radius:9px;padding:8px 10px;font:800 11px 'Outfit',sans-serif;cursor:pointer}
 .machine-form-section{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:13px;margin-bottom:12px}
 .machine-form-step{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:800;color:var(--cyan)}
 .machine-step-num{width:24px;height:24px;border-radius:8px;background:rgba(59,206,172,.14);border:1px solid rgba(59,206,172,.28);display:flex;align-items:center;justify-content:center;font-size:11px}
@@ -2694,6 +2694,18 @@ function renderMediaThumbs(media){
     return '<img src="'+escapeHtml(item.url)+'" alt="">';
   }).join('');
 }
+function getVideoPlaybackUrl(url){
+  const s=String(url||'');
+  if(!s) return s;
+  // Force a broadly compatible MP4 delivery from Cloudinary while keeping the original file untouched.
+  if(/res\.cloudinary\.com\\//i.test(s) || /res\.cloudinary\.com\//i.test(s)){
+    if(s.includes('/upload/') && !s.includes('/upload/f_mp4')){
+      return s.replace('/upload/','/upload/f_mp4,q_auto/');
+    }
+  }
+  return s;
+}
+
 function openAdminMachineMedia(el){
   if(!el) return;
   openLightbox(el.dataset.url || '', el.dataset.caption || 'Photo', el.dataset.video === 'true');
@@ -2703,7 +2715,7 @@ function renderAdminMachineMedia(media){
     const item=typeof x==='string' ? {url:x,type:mediaKind(x)} : x;
     if(!item?.url) return '';
     if(item.type==='video'){
-      return '<div class="machine-admin-media-click" data-url="'+escapeHtml(item.url)+'" data-caption="'+escapeHtml(item.name||'Vidéo')+'" data-video="true" onclick="openAdminMachineMedia(this)"><video src="'+escapeHtml(item.url)+'" muted preload="metadata"></video><span>▶</span></div>';
+      return '<div class="machine-admin-media-click" data-url="'+escapeHtml(getVideoPlaybackUrl(item.url))+'" data-caption="'+escapeHtml(item.name||'Vidéo')+'" data-video="true" onclick="openAdminMachineMedia(this)"><video src="'+escapeHtml(getVideoPlaybackUrl(item.url))+'" muted playsinline preload="metadata"></video><span>▶</span></div>';
     }
     return '<div class="machine-admin-media-click" data-url="'+escapeHtml(item.url)+'" data-caption="'+escapeHtml(item.name||'Photo')+'" onclick="openAdminMachineMedia(this)"><img src="'+escapeHtml(item.url)+'" alt="" loading="lazy"></div>';
   }).join('');
@@ -2743,7 +2755,7 @@ function renderMachineRequests(){
           '<button class="machine-reject" type="button" onclick="rejectMachineRequest(\''+safeId+'\')">❌ Refuser</button>'+
         '</div>'
       : (status==='rejected'
-          ? '<div class="machine-mini-note" style="margin-top:10px;color:#FF6B75">Cette proposition a été refusée.</div>'
+          ? '<div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div class="machine-mini-note" style="color:#FF6B75">Cette proposition a été refusée.</div><button type="button" class="machine-delete-rejected" onclick="deleteRejectedMachineRequest(\''+safeId+'\')">🗑 Supprimer</button></div>'
           : '<div class="machine-mini-note" style="margin-top:10px;color:#2ED573">Ce fichier est publié dans Fichiers.</div>');
 
     const mainPhoto = mainUrl
@@ -2827,6 +2839,35 @@ async function rejectMachineRequest(id){
 }
 
 
+async function deleteRejectedMachineRequest(id){
+  const requests = await fbLoadMachineRequests();
+  const request = requests[id];
+  if(!request){
+    showToast('⚠️ Proposition introuvable',true);
+    return;
+  }
+  if((request.status||'pending')!=='rejected'){
+    showToast('⚠️ Seules les propositions refusées peuvent être supprimées ici',true);
+    return;
+  }
+
+  if(!confirm('Supprimer cette proposition refusée de l’historique ?')) return;
+
+  delete requests[id];
+  _machineRequestsCache = requests;
+
+  const saved = await fbSaveMachineRequests(requests);
+  if(!saved){
+    _machineRequestsCache = await fbLoadMachineRequests();
+    renderMachineRequests();
+    showToast('❌ Suppression impossible',true);
+    return;
+  }
+
+  renderMachineRequests();
+  showToast('🗑 Proposition supprimée');
+}
+
 function openMachineDetail(id){
   const m=getApprovedMachines()[id];
   if(!m)return;
@@ -2853,7 +2894,7 @@ function openMachineDetail(id){
   if(media.length){
     html+='<div class="media-grid">'+media.map(x=>{
       if(x.type==='video'){
-        return '<div class="media-card"><video src="'+escapeHtml(x.url)+'" controls playsinline preload="metadata"></video><div class="media-video-badge">▶ VIDÉO</div></div>';
+        return '<div class="media-card" style="background:#000"><video src="'+escapeHtml(getVideoPlaybackUrl(x.url))+'" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain"></video><div class="media-video-badge">▶ VIDÉO</div></div>';
       }
       return '<div class="media-card" data-url="'+escapeHtml(x.url)+'" data-caption="'+escapeHtml(x.name||'Photo')+'" onclick="openMachineMedia(this)"><img src="'+escapeHtml(x.url)+'" alt="" loading="lazy"></div>';
     }).join('')+'</div>';
@@ -4745,9 +4786,13 @@ function openLightbox(url, caption, videoFlag) {
   if (isVideo(url, {isVideo: videoFlag})) {
     lbImg.style.display = 'none';
     const vid = document.createElement('video');
-    vid.src = url; vid.controls = true; vid.autoplay = true;
+    vid.src = getVideoPlaybackUrl(url);
+    vid.controls = true;
+    vid.autoplay = true;
+    vid.playsInline = true;
+    vid.preload = 'metadata';
     vid.className = 'lb-video';
-    vid.style.cssText = 'max-width:100%;max-height:80vh;border-radius:8px;';
+    vid.style.cssText = 'display:block;width:auto;max-width:96vw;height:auto;max-height:78vh;object-fit:contain;background:#000;border-radius:8px;';
     lb.insertBefore(vid, lbImg.nextSibling);
   } else {
     lbImg.style.display = '';
