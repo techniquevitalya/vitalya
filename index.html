@@ -2424,6 +2424,11 @@ function fbListenApprovedMachines(){
 
 function resetMachineDraft(){
   _machineDraft = { branchFiles: [] };
+  const input = document.getElementById('branchMediaInput');
+  if(input) input.value = '';
+  setTimeout(() => {
+    if(typeof renderBranchPhotoSelection === 'function') renderBranchPhotoSelection();
+  }, 0);
 }
 function previewMachinePhoto(input){
   const wrap = document.getElementById('machinePhotoPreview');
@@ -2439,13 +2444,58 @@ function previewMachinePhoto(input){
 }
 function previewBranchPhotos(input){
   const files = Array.from(input.files || []);
-  _machineDraft.branchFiles = files;
+  if (!files.length) return;
+
+  const existing = _machineDraft.branchFiles || [];
+  const key = f => [f.name, f.size, f.lastModified, f.type].join('|');
+
+  // Ajoute la nouvelle sélection à celles déjà choisies.
+  const merged = existing.concat(files);
+  const seen = new Set();
+  _machineDraft.branchFiles = merged.filter(f => {
+    const k = key(f);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  renderBranchPhotoSelection();
+
+  // Permet de choisir à nouveau des fichiers, y compris le même fichier.
+  input.value = '';
+}
+
+function removeBranchPhoto(index){
+  if (!_machineDraft.branchFiles) return;
+  _machineDraft.branchFiles.splice(index, 1);
+  renderBranchPhotoSelection();
+}
+
+function renderBranchPhotoSelection(){
+  const files = _machineDraft.branchFiles || [];
   const count = document.getElementById('branchPhotoCount');
   const preview = document.getElementById('branchPhotoPreviewList');
-  if(count) count.textContent = files.length ? ('✅ ' + files.length + ' photo' + (files.length > 1 ? 's' : '') + ' sélectionnée' + (files.length > 1 ? 's' : '')) : '';
-  if(preview){
-    preview.innerHTML = files.map(file => '<img src="' + URL.createObjectURL(file) + '" alt="">').join('');
+
+  if(count){
+    count.textContent = files.length
+      ? '✅ ' + files.length + ' média' + (files.length > 1 ? 's' : '') + ' sélectionné' + (files.length > 1 ? 's' : '')
+      : '';
   }
+
+  if(!preview){
+    return;
+  }
+
+  preview.innerHTML = files.map((file, i) => {
+    const src = URL.createObjectURL(file);
+    const type = /^video\//i.test(file.type);
+    return '<div style="position:relative">'+
+      (type
+        ? '<video src="'+src+'" controls style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px"></video>'
+        : '<img src="'+src+'" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px">')+
+      '<button type="button" onclick="removeBranchPhoto('+i+')" style="position:absolute;right:4px;top:4px;width:26px;height:26px;border:0;border-radius:50%;background:rgba(0,0,0,.75);color:#fff;cursor:pointer;font-weight:800">✕</button>'+
+      '</div>';
+  }).join('');
 }
 
 function showAddMachineModal(selectedFolder,selectedSubfolder,selectedSystem){
@@ -2489,15 +2539,58 @@ function showAddMachineModal(selectedFolder,selectedSubfolder,selectedSystem){
   renderMachineAddFolderOptions(selectedFolder,selectedSubfolder,selectedSystem);
 }
 function previewBranchPhotos(input){
-  const files=Array.from(input.files||[]);
-  _machineDraft.branchFiles=files;
-  const count=document.getElementById('branchPhotoCount');
-  const preview=document.getElementById('branchPhotoPreviewList');
-  if(count)count.textContent=files.length?'✅ '+files.length+' média'+(files.length>1?'s':'')+' sélectionné'+(files.length>1?'s':''):'';
-  if(preview)preview.innerHTML=files.map(f=>{
-    const type=/^video\//i.test(f.type)?'video':'image';
-    const src=URL.createObjectURL(f);
-    return type==='video'?'<video src="'+src+'" controls style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px"></video>':'<img src="'+src+'" alt="">';
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+
+  const existing = _machineDraft.branchFiles || [];
+  const key = f => [f.name, f.size, f.lastModified, f.type].join('|');
+
+  // Ajoute la nouvelle sélection à celles déjà choisies.
+  const merged = existing.concat(files);
+  const seen = new Set();
+  _machineDraft.branchFiles = merged.filter(f => {
+    const k = key(f);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  renderBranchPhotoSelection();
+
+  // Permet de choisir à nouveau des fichiers, y compris le même fichier.
+  input.value = '';
+}
+
+function removeBranchPhoto(index){
+  if (!_machineDraft.branchFiles) return;
+  _machineDraft.branchFiles.splice(index, 1);
+  renderBranchPhotoSelection();
+}
+
+function renderBranchPhotoSelection(){
+  const files = _machineDraft.branchFiles || [];
+  const count = document.getElementById('branchPhotoCount');
+  const preview = document.getElementById('branchPhotoPreviewList');
+
+  if(count){
+    count.textContent = files.length
+      ? '✅ ' + files.length + ' média' + (files.length > 1 ? 's' : '') + ' sélectionné' + (files.length > 1 ? 's' : '')
+      : '';
+  }
+
+  if(!preview){
+    return;
+  }
+
+  preview.innerHTML = files.map((file, i) => {
+    const src = URL.createObjectURL(file);
+    const type = /^video\//i.test(file.type);
+    return '<div style="position:relative">'+
+      (type
+        ? '<video src="'+src+'" controls style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px"></video>'
+        : '<img src="'+src+'" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px">')+
+      '<button type="button" onclick="removeBranchPhoto('+i+')" style="position:absolute;right:4px;top:4px;width:26px;height:26px;border:0;border-radius:50%;background:rgba(0,0,0,.75);color:#fff;cursor:pointer;font-weight:800">✕</button>'+
+      '</div>';
   }).join('');
 }
 async function uploadMachineMedia(file,folder){
