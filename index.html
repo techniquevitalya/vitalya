@@ -523,6 +523,22 @@ body {
 .tab-page { display: none; height: 100%; flex-direction: column; overflow: hidden; }
 .tab-page.active { display: flex; }
 
+/* FIX — Fiches : conteneur réellement défilable dès l'ouverture */
+#fichesPage { min-height: 0; }
+#fichesList {
+  flex: 1 1 auto !important;
+  min-height: 0;
+  height: auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+}
+#fichesList .cats-inner { min-height: min-content; padding-bottom: max(32px, env(safe-area-inset-bottom, 32px)); }
+#ficheDetail, #galleryView { min-height: 0; }
+#ficheContent { min-height: 0; overscroll-behavior-y: contain; }
+
 /* ==================== CHAT ==================== */
 #chatPage { }
 
@@ -2804,32 +2820,34 @@ function openFiche(id) {
   if (!fiche) return;
 
   if (fiche.isPhotoGallery) {
-    // Show old category selector for photo gallery
     openPhotoCatSelector();
     return;
   }
 
-  document.getElementById('fichesList').style.display = 'none';
-  document.getElementById('ficheDetail').style.display = 'flex';
+  const list = document.getElementById('fichesList');
+  list.style.display = 'none';
+  const detail = document.getElementById('ficheDetail');
+  detail.style.display = 'flex';
   document.getElementById('ficheTitle').textContent = fiche.title;
   document.getElementById('ficheSubtitle').textContent = fiche.subtitle || '';
-  document.getElementById('ficheContent').innerHTML = fiche.html;
-  document.getElementById('ficheContent').scrollTop = 0;
+  const content = document.getElementById('ficheContent');
+  content.innerHTML = fiche.html;
+  content.scrollTop = 0;
 }
 
 function closeFiche() {
   document.getElementById('ficheDetail').style.display = 'none';
-  document.getElementById('ficheDetail').querySelector('.back-btn').onclick = closeFiche;
   restoreFichesList();
 }
 
 function restoreFichesList() {
   const fl = document.getElementById('fichesList');
-  fl.style.display = '';
-  fl.style.flex = '1';
+  fl.style.display = 'flex';
+  fl.style.flex = '1 1 auto';
+  fl.style.minHeight = '0';
   fl.style.overflowY = 'auto';
+  fl.style.overflowX = 'hidden';
   fl.style.webkitOverflowScrolling = 'touch';
-  // Reset scroll to top
   fl.scrollTop = 0;
 }
 
@@ -3516,7 +3534,7 @@ async function sendMsg() {
     
     const resp = await fetch('/api/claude', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
@@ -3524,9 +3542,20 @@ async function sendMsg() {
         messages: messagesToSend
       })
     });
-    const data = await resp.json();
+
+    let data = {};
+    try { data = await resp.json(); } catch(e) {
+      throw new Error('Réponse API invalide (' + resp.status + ')');
+    }
+
     hideTypingIndicator();
-    addBubble('assistant', data.content?.[0]?.text || "Désolé, erreur. Réessayez.");
+    if (!resp.ok || data.error) {
+      const detail = data?.error?.message || data?.error?.type || ('HTTP ' + resp.status);
+      addBubble('assistant', '⚠️ Le service IA a renvoyé une erreur : ' + detail + '.');
+    } else {
+      const answer = data?.content?.[0]?.text;
+      addBubble('assistant', answer || '⚠️ Réponse IA vide. Réessayez.');
+    }
   } catch {
     hideTypingIndicator();
     addBubble('assistant', "⚠️ Erreur de connexion. Vérifiez votre réseau.");
