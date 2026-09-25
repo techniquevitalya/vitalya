@@ -5793,7 +5793,8 @@ async function saveProductDosage(){
   if(!productName){showToast('⚠️ Indique le produit',true);return;}
   if(!doseur){showToast('⚠️ Indique le doseur utilisé',true);return;}
   if(dosageType==='nozzle'&&!nozzle){showToast('⚠️ Choisis la couleur de buse',true);return;}
-  if(dosageType==='gram'&&(!gram||Number(gram)<=0)){showToast('⚠️ Indique le grammage',true);return;}
+  const gramValue=String(gram).trim().replace(',','.');
+  if(dosageType==='gram'&&(!gramValue||Number(gramValue)<=0)){showToast('⚠️ Indique le grammage',true);return;}
   const data=getProductDosages();
   const id='dosage-'+Date.now();
   data[id]={id,folderId,productName,doseur,dosageType,dosageValue:dosageType==='nozzle'?nozzle:String(gram).replace(',','.'),createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||''};
