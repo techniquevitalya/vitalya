@@ -5835,7 +5835,7 @@ function renderProductDosages(){
 function showAddProductDosageModal(preselectedClient){
   const folders=dosageFolders();
   const options=folders.map(f=>'<option value="'+escapeHtml(f.id)+'"'+(preselectedClient===f.id?' selected':'')+'>'+escapeHtml(f.name)+'</option>').join('')+
-    '<option value="__new_client__">➕ Ajouter un autre client…</option>';
+    '<option value="__new_client__">➕ Autre client…</option>';
   showModal(
     '<div class="modal-title">💧 Ajouter un dosage produit</div>'+
     '<label class="dosage-label">Client</label>'+
@@ -5908,6 +5908,7 @@ async function saveDosageClient(){
   closeModal();
   renderProductDosages();
   showToast('✅ Client ajouté');
+  setTimeout(()=>showAddProductDosageModal(id),120);
 }
 
 function setProductDosageType(type){
