@@ -2772,7 +2772,7 @@ function openAdminMachineMedia(el){
   openLightbox(el.dataset.url || '', el.dataset.caption || 'Photo', el.dataset.video === 'true');
 }
 function renderAdminMachineMedia(media){
-  return (media||[]).map(x=>{
+  return mediaArray(media).map(x=>{
     const item=typeof x==='string' ? {url:x,type:mediaKind(x)} : x;
     if(!item?.url) return '';
     if(item.type==='video'){
@@ -2784,12 +2784,18 @@ function renderAdminMachineMedia(media){
 let _machineRequestRefreshTimer=null;
 
 async function refreshMachineRequestsNow(){
+  const list=document.getElementById('machineRequestsList');
   try{
     await fbLoadMachineRequests();
+    await fbLoadApprovedMachines();
     renderMachineRequests();
-    showToast('✅ Demandes actualisées');
+    const count=Object.keys(getMachineRequests()||{}).length;
+    showToast(count ? '✅ Demandes chargées' : 'ℹ️ Aucune nouvelle demande');
   }catch(e){
-    console.error(e);
+    console.error('Actualisation demandes:',e);
+    if(list){
+      list.innerHTML='<div class="machine-mini-note" style="color:#FF6B75">❌ Erreur de chargement. Ouvre la console pour le détail.</div>';
+    }
     showToast('❌ Impossible de charger les demandes',true);
   }
 }
@@ -2837,8 +2843,8 @@ function renderMachineRequests(){
       status==='rejected' ? '<span class="machine-status-badge machine-status-rejected">❌ Refusée</span>' :
       '<span class="machine-status-badge machine-status-pending">⏳ À valider</span>';
 
-    const media=r.branchMedia||r.branchPhotos||[];
-    const mainUrl=r.machinePhoto?.url||r.machinePhotoUrl||r.photoUrl||'';
+    const media=mediaArray(r.branchMedia || r.branchPhotos);
+    const mainUrl=(r.machinePhoto && typeof r.machinePhoto==='object' ? r.machinePhoto.url : '') || r.machinePhotoUrl || r.photoUrl || '';
     const safeId = escapeHtml(r.id || '');
     const actions = status==='pending'
       ? '<div class="machine-request-actions">'+
@@ -5766,6 +5772,12 @@ function libraryGroupForMachine(m){
   if(t.includes('lave-vaisselle')) return {root:'Lave-vaisselle',sub:'Autres'};
   return {root:m.systemType || 'Autre',sub:null};
 }
+function mediaArray(value){
+  if(Array.isArray(value)) return value;
+  if(value && typeof value==='object') return Object.values(value);
+  return [];
+}
+
 function mediaKind(url,type){
   const t=String(type||'').toLowerCase();
   if(t==='video' || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(String(url||''))) return 'video';
@@ -5775,7 +5787,7 @@ function normalizeMachineMedia(m){
   const out=[];
   const primary=m.machinePhoto || (m.machinePhotoUrl ? {url:m.machinePhotoUrl,type:'image'} : (m.photoUrl ? {url:m.photoUrl,type:'image'} : null));
   if(primary?.url) out.push({...primary,type:mediaKind(primary.url,primary.type),primary:true});
-  const src=m.branchMedia || m.branchPhotos || [];
+  const src=mediaArray(m.branchMedia || m.branchPhotos);
   for(const item of src){
     const x=typeof item==='string' ? {url:item,type:mediaKind(item)} : item;
     if(x?.url) out.push({...x,type:mediaKind(x.url,x.type),primary:false});
