@@ -5839,12 +5839,22 @@ function fbListenProductDosageSystems(){
     });
   }catch(e){}
 }
-function productDosageSystemList(){
-  const base=[
-    'Accuratic DP','Accuratic DS','Revoflow','QFM','DQFM','Poste de désinfection'
-  ];
-  const custom=Object.values(getProductDosageSystems()).map(x=>x.name).filter(Boolean);
+function productDosageSystemList(clientId){
+  const base = clientId==='diversey'
+    ? ['QFM','DQFM','Poste de désinfection']
+    : [];
+  const custom=Object.values(getProductDosageSystems())
+    .filter(x=>!clientId || !x.clientId || x.clientId===clientId)
+    .map(x=>x.name).filter(Boolean);
   return [...new Set(base.concat(custom))];
+}
+function refreshDosageSystemOptions(clientId){
+  const sel=document.getElementById('dosageDoseur');
+  if(!sel)return;
+  const list=productDosageSystemList(clientId);
+  sel.innerHTML='<option value="">Choisir le système de dosage…</option>'+
+    list.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('')+
+    '<option value="__new_system__">➕ Ajouter un système de dosage…</option>';
 }
 
 function dosageFolders(){
@@ -5878,14 +5888,12 @@ function showAddProductDosageModal(preselectedClient){
   showModal(
     '<div class="modal-title">💧 Ajouter un dosage produit</div>'+
     '<label class="dosage-label">Client</label>'+
-    '<select id="dosageClient" class="dosage-select" onchange="handleDosageClientChoice(this)"><option value="">Choisir le client…</option>'+options+'</select>'+
+    '<select id="dosageClient" class="dosage-select" onchange="handleDosageClientChoice(this);refreshDosageSystemOptions(this.value)"><option value="">Choisir le client…</option>'+options+'</select>'+
     '<label class="dosage-label">Désignation du produit</label>'+
     '<input id="dosageProductName" class="dosage-input" placeholder="Ex : Suma D4.4">'+
     '<label class="dosage-label">Doseur utilisé <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">(facultatif)</span></label>'+
     '<select id="dosageDoseur" class="dosage-select" onchange="handleDosageSystemChoice(this)">'+
-      '<option value="">Choisir le système de dosage…</option>'+
-      productDosageSystemList().map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('')+
-      '<option value="__new_system__">➕ Ajouter un système de dosage…</option>'+
+      '<option value="">Choisir le client d’abord…</option>'+
     '</select>'+
     '<label class="dosage-label">Dosage</label>'+
     '<div class="dosage-type-row">'+
@@ -5995,11 +6003,11 @@ async function saveQuickProductDosage(){
 
 function handleDosageSystemChoice(select){
   if(select?.value==='__new_system__'){
-    showAddDosageSystemModal();
+    showAddDosageSystemModal(document.getElementById('dosageClient')?.value||'');
     select.value='';
   }
 }
-function showAddDosageSystemModal(){
+function showAddDosageSystemModal(clientId){
   showModal(
     '<div class="modal-title">⚙️ Ajouter un système de dosage</div>'+
     '<div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px">Ajoute un système qui n’existe pas encore dans la liste.</div>'+
@@ -6016,10 +6024,12 @@ async function saveDosageSystem(){
   const exists=productDosageSystemList().some(x=>x.toLowerCase()===name.toLowerCase());
   if(exists){showToast('⚠️ Ce système existe déjà',true);return;}
   const id='system-'+Date.now();
-  systems[id]={id,name,createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||''};
+  systems[id]={id,name,clientId:clientId||document.getElementById('dosageClient')?.value||'',createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||''};
   await fbSaveProductDosageSystems(systems);
+  const clientId=systems[id].clientId||'';
   closeModal();
   showToast('✅ Système ajouté');
+  setTimeout(()=>showAddProductDosageModal(clientId),120);
 }
 
 async function saveProductDosage(){
