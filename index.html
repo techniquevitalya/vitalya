@@ -3027,58 +3027,7 @@ function globalSearch(q){
     '</div>'
   ).join('');
 }
-function buildGlobalSearchIndex(){
-  const items=[];
-  const folders=getLibraryFolders();
-  folders.forEach(f=>{
-    items.push({icon:f.icon||'📁',title:f.name,meta:'Dossier',keywords:f.name,action:()=>switchTab('fiches')});
-    (f.subs||[]).forEach(s=>items.push({icon:'📂',title:s.name,meta:f.name+' · Sous-dossier',keywords:f.name+' '+s.name,action:()=>switchTab('fiches')}));
-  });
-  Object.values(getApprovedMachines()).filter(m=>m.status==='approved').forEach(m=>{
-    const folder=folders.find(f=>f.id===m.folderId);
-    items.push({
-      icon:'⚙️',title:m.systemName||m.model||'Système de dosage',
-      meta:[folder?.name,m.systemType,m.model].filter(Boolean).join(' · '),
-      keywords:[m.systemName,m.model,m.systemType,folder?.name].filter(Boolean).join(' '),
-      action:()=>{switchTab('fiches');openMachineDetail(m.id);}
-    });
-  });
-  const dosageFoldersMap={};
-  dosageFolders().forEach(f=>dosageFoldersMap[f.id]=f.name);
-  Object.values(getProductDosages()).forEach(d=>{
-    items.push({
-      icon:'💧',title:d.productName||'Produit',
-      meta:[dosageFoldersMap[d.folderId],d.doseur,d.dosageType==='free'?d.dosageValue:(d.dosageType==='nozzle'?'Buse '+d.dosageValue:(d.dosageValue+' g'))].filter(Boolean).join(' · '),
-      keywords:[d.productName,d.doseur,d.dosageValue,dosageFoldersMap[d.folderId]].filter(Boolean).join(' '),
-      action:()=>{switchTab('dosages');setTimeout(()=>scrollToDosageItem(d.id),60);}
-    });
-  });
-  Object.values(getMachineDosageSystems()).forEach(s=>{
-    const folder=folders.find(f=>f.id===s.folderId);
-    items.push({
-      icon:'⚙️',title:s.name,
-      meta:[folder?.name,s.subfolderId].filter(Boolean).join(' · '),
-      keywords:[s.name,folder?.name,s.subfolderId].filter(Boolean).join(' '),
-      action:()=>{switchTab('fiches');setTimeout(()=>showAddMachineModal(s.folderId,s.subfolderId,s.name),60);}
-    });
-  });
-  if(typeof FICHES!=='undefined')Object.entries(FICHES).forEach(([id,f])=>{
-    items.push({icon:'📄',title:f.title||id,meta:f.subtitle||'Fiche technique',keywords:[f.title,f.subtitle,f.html].filter(Boolean).join(' '),action:()=>{switchTab('fiches');setTimeout(()=>openFiche(id),60);}});
-  });
-  getDocs().forEach(d=>items.push({icon:'📄',title:d.name||'Document',meta:'Document',keywords:[d.name,d.ext].filter(Boolean).join(' '),action:()=>switchTab('fiches')}));
-  getCats().forEach(cat=>{
-    if(cat&&cat.name)items.push({icon:cat.icon||'📁',title:cat.name,meta:'Photos · catégorie',keywords:cat.name,action:()=>{switchTab('fiches');setTimeout(()=>openDynamicGallery(cat.id),60);}});
-    (cat?.subs||[]).forEach(s=>items.push({icon:s.icon||'📂',title:s.name,meta:cat.name+' · Photos',keywords:[cat.name,s.name].join(' '),action:()=>{switchTab('fiches');}});
-  });
-  try{
-    const prodSelect=document.getElementById('calcProduit');
-    if(prodSelect)prodSelect.querySelectorAll('option[value]').forEach(o=>items.push({icon:'🧴',title:o.textContent.trim(),meta:'Produit / calculateur',keywords:o.textContent.trim(),action:()=>switchTab('fiches')}));
-  }catch(e){}
-  try{
-    getExtra().slice(0,120).forEach((x,i)=>items.push({icon:'🤖',title:'Base IA · '+(String(x).match(/^===\s*(.*?)\s*===/)?.[1]||'Information'),meta:'Connaissances IA',keywords:String(x).slice(0,3000),action:()=>switchTab('chat')}));
-  }catch(e){}
-  return items;
-}
+function buildGlobalSearchIndex(){ return []; }
 function scrollToDosageItem(id){
   const el=document.getElementById('dosage-item-'+CSS.escape(String(id)));
   if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
