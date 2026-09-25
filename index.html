@@ -2369,7 +2369,8 @@ function getMachineRequests(){ return _machineRequestsCache || {}; }
 function getApprovedMachines(){ return _approvedMachinesCache || {}; }
 
 async function fbLoadMachineRequests(){
-  if(!window._fbReady) return getMachineRequests();
+  const ready = await waitForFirebaseReady();
+  if(!ready) return getMachineRequests();
   try{
     const snap = await window._fbGet(window._fbRef(window._fbDb,'vitalya/machineRequests'));
     _machineRequestsCache = snap.exists() ? (snap.val() || {}) : {};
@@ -2378,7 +2379,8 @@ async function fbLoadMachineRequests(){
 }
 async function fbSaveMachineRequests(data){
   _machineRequestsCache = data || {};
-  if(!window._fbReady) return false;
+  const ready = await waitForFirebaseReady();
+  if(!ready) return false;
   try{
     await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests'),_machineRequestsCache);
     return true;
@@ -2388,7 +2390,8 @@ async function fbSaveMachineRequests(data){
   }
 }
 async function fbLoadApprovedMachines(){
-  if(!window._fbReady) return getApprovedMachines();
+  const ready = await waitForFirebaseReady();
+  if(!ready) return getApprovedMachines();
   try{
     const snap = await window._fbGet(window._fbRef(window._fbDb,'vitalya/machines'));
     _approvedMachinesCache = snap.exists() ? (snap.val() || {}) : {};
@@ -2402,24 +2405,28 @@ async function fbSaveApprovedMachines(data){
   catch(e){ console.error('Approved machines save',e); }
 }
 function fbListenMachineRequests(){
-  if(!window._fbReady) return;
-  try{
-    window._fbOnValue(window._fbRef(window._fbDb,'vitalya/machineRequests'), snap => {
-      _machineRequestsCache = snap.exists() ? (snap.val() || {}) : {};
-      renderMachineRequests();
-      renderMyMachineRequestList();
-    });
-  }catch(e){}
+  waitForFirebaseReady().then(ready=>{
+    if(!ready) return;
+    try{
+      window._fbOnValue(window._fbRef(window._fbDb,'vitalya/machineRequests'), snap => {
+        _machineRequestsCache = snap.exists() ? (snap.val() || {}) : {};
+        renderMachineRequests();
+        renderMyMachineRequestList();
+      });
+    }catch(e){ console.error('Machine requests listener',e); }
+  });
 }
 function fbListenApprovedMachines(){
-  if(!window._fbReady) return;
-  try{
-    window._fbOnValue(window._fbRef(window._fbDb,'vitalya/machines'), snap => {
-      _approvedMachinesCache = snap.exists() ? (snap.val() || {}) : {};
-      buildFichesList();
-      renderMyMachineRequestList();
-    });
-  }catch(e){}
+  waitForFirebaseReady().then(ready=>{
+    if(!ready) return;
+    try{
+      window._fbOnValue(window._fbRef(window._fbDb,'vitalya/machines'), snap => {
+        _approvedMachinesCache = snap.exists() ? (snap.val() || {}) : {};
+        buildFichesList();
+        renderMyMachineRequestList();
+      });
+    }catch(e){ console.error('Approved machines listener',e); }
+  });
 }
 
 function resetMachineDraft(){
@@ -2931,7 +2938,7 @@ async function doLogin() {
   if ((username === 'admin' || username === '') && pwd === ADMIN_PWD) {
     currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
     showScreen('adminScreen');
-    Promise.all([fbLoadPhotos(), fbLoadCats()]).then(() => {
+    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines()]).then(() => {
       renderAdminDocs();
       renderAdminCatList();
       renderAdminStats();
@@ -2940,8 +2947,6 @@ async function doLogin() {
       renderMachineRequests();
       fbListenPhotos();
       fbListenCats();
-      fbLoadMachineRequests().then(renderMachineRequests);
-      fbLoadApprovedMachines();
       fbListenMachineRequests();
       fbListenApprovedMachines();
     });
@@ -3021,6 +3026,23 @@ function logout() {
 // ─── STATS CONNEXION ─────────────────────────────────────────────────────────
 const CONN_LOG_KEY = 'vitalya_conn_log';
 
+function waitForFirebaseReady(timeout=12000){
+  if(window._fbReady) return Promise.resolve(true);
+  return new Promise(resolve=>{
+    let done=false;
+    const finish=ok=>{
+      if(done)return;
+      done=true;
+      clearTimeout(timer);
+      window.removeEventListener('firebase-ready',onReady);
+      resolve(!!ok);
+    };
+    const onReady=()=>finish(!!window._fbReady);
+    const timer=setTimeout(()=>finish(!!window._fbReady),timeout);
+    window.addEventListener('firebase-ready',onReady,{once:true});
+  });
+}
+
 async function logConnection(userId, userName) {
   const now = Date.now();
   const log = {
@@ -3030,7 +3052,8 @@ async function logConnection(userId, userName) {
     time: new Date(now).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}),
     ts: now
   };
-  if (!window._fbReady) return false;
+  const ready = await waitForFirebaseReady();
+  if (!ready) return false;
   try {
     const key = String(now) + '_' + String(userId || 'user').replace(/[^a-zA-Z0-9_-]/g,'_');
     const ref = window._fbRef(window._fbDb, 'vitalya/connections/' + key);
@@ -3050,7 +3073,8 @@ async function logConnection(userId, userName) {
 async function loadConnectionStats() {
   const el = document.getElementById('connectionStats');
   if (!el) return;
-  if (!window._fbReady) { el.innerHTML = '<div style="font-size:13px;color:var(--muted);">Firebase non disponible</div>'; return; }
+  const ready = await waitForFirebaseReady();
+  if (!ready) { el.innerHTML = '<div style="font-size:13px;color:#FF6B75;">Firebase non disponible</div>'; return; }
   try {
     const r = window._fbRef(window._fbDb, 'vitalya/connections');
     const snap = await window._fbGet(r);
