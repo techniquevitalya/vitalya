@@ -2584,19 +2584,27 @@ function renderMediaThumbs(media){
 }
 function renderMachineRequests(){
   const el=document.getElementById('machineRequestsList');if(!el)return;
-  const arr=Object.values(getMachineRequests()).filter(r=>!r.status||r.status==='pending').sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  if(!arr.length){el.innerHTML='<div class="machine-mini-note">✅ Aucune demande en attente.</div>';return;}
+  const pending = Object.values(getMachineRequests() || {});
+  const approved = Object.values(getApprovedMachines() || {}).map(r=>({...r,status:'approved'}));
+  const merged = new Map();
+  [...pending,...approved].forEach(r => {
+    if(!r || !r.id) return;
+    const prev = merged.get(r.id);
+    if(!prev || r.status === 'approved' || !prev.status) merged.set(r.id,r);
+  });
+  const arr = Array.from(merged.values()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(!arr.length){el.innerHTML='<div class="machine-mini-note">✅ Aucune proposition.</div>';return;}
   el.innerHTML=arr.map(r=>{
+    const status = r.status || 'pending';
+    const statusHtml = status === 'approved' ? '<span class="machine-status-badge machine-status-approved">✅ Validée</span>' : status === 'rejected' ? '<span class="machine-status-badge machine-status-rejected">❌ Refusée</span>' : '<span class="machine-status-badge machine-status-pending">⏳ En attente</span>';
     const media=r.branchMedia||r.branchPhotos||[];
+    const actions = status === 'pending' ? '<div class="machine-request-actions"><button class="machine-approve" onclick="approveMachineRequest(\\\''+escapeHtml(r.id)+'\\\')">✅ Valider</button><button class="machine-reject" onclick="rejectMachineRequest(\\\''+escapeHtml(r.id)+'\\\')">❌ Refuser</button></div>' : '';
     return '<div class="machine-request-card">'+
       '<div class="machine-request-top"><img class="machine-request-photo" src="'+escapeHtml(r.machinePhoto?.url||r.machinePhotoUrl||r.photoUrl||'')+'" alt="">'+
-      '<div class="machine-request-info"><span class="fiches-system-chip">'+escapeHtml(r.systemType||'')+'</span><div class="machine-request-name">'+escapeHtml(r.systemName||r.name||'')+'</div><div class="machine-request-meta">'+(r.model?escapeHtml(r.model)+'<br>':'')+'Proposée par : '+escapeHtml(r.createdByName||'Technicien')+'<br>'+new Date(r.createdAt||Date.now()).toLocaleString('fr-FR')+'</div></div></div>'+
-      (media.length?'<div class="machine-request-photo-list">'+renderMediaThumbs(media)+'</div>':'')+
-      '<div class="machine-request-actions"><button class="machine-approve" onclick="approveMachineRequest(\''+r.id+'\')">✅ Valider</button><button class="machine-reject" onclick="rejectMachineRequest(\''+r.id+'\')">❌ Refuser</button></div>'+
-      '</div>';
+      '<div class="machine-request-info"><div style="margin-bottom:5px">'+statusHtml+'</div><span class="fiches-system-chip">'+escapeHtml(r.systemType||'')+'</span><div class="machine-request-name">'+escapeHtml(r.systemName||r.name||'')+'</div><div class="machine-request-meta">'+(r.model?escapeHtml(r.model)+'<br>':'')+'Proposée par : '+escapeHtml(r.createdByName||'Technicien')+'<br>'+new Date(r.createdAt||Date.now()).toLocaleString('fr-FR')+'</div></div></div>'+
+      (media.length?'<div class="machine-request-photo-list">'+renderMediaThumbs(media)+'</div>':'')+actions+'</div>';
   }).join('');
 }
-
 async function approveMachineRequest(id){
   const requests = await fbLoadMachineRequests();
   const request = requests[id];
@@ -2659,7 +2667,7 @@ function openMachineDetail(id){
       if(x.type==='video'){
         return '<div class="media-card"><video src="'+escapeHtml(x.url)+'" controls playsinline preload="metadata"></video><div class="media-video-badge">▶ VIDÉO</div></div>';
       }
-      return '<div class="media-card" onclick="openLightbox(\''+escapeHtml(x.url)+'\',\''+escapeHtml(x.name||'Photo')+'\')"><img src="'+escapeHtml(x.url)+'" alt=""></div>';
+      return '<div class="media-card" data-url="'+escapeHtml(x.url)+'" data-caption="'+escapeHtml(x.name||'Photo')+'" onclick="openMachineMedia(this)"><img src="'+escapeHtml(x.url)+'" alt="" loading="lazy"></div>';
     }).join('')+'</div>';
   }else{
     html+='<div class="library-empty">Aucun média.</div>';
@@ -5412,6 +5420,30 @@ function normalizeMachineMedia(m){
     if(x?.url) out.push({...x,type:mediaKind(x.url,x.type),primary:false});
   }
   return out;
+}
+function openMachineMedia(el){
+  if(!el) return;
+  openLightbox(el.dataset.url || '', el.dataset.caption || 'Photo', el.dataset.video === 'true');
+}
+
+function renderLibraryModel(m, rootName, subName){
+  const media = normalizeMachineMedia(m);
+  const primary = media.find(x => x.primary) || media[0] || null;
+  const photoUrl = primary?.url || '';
+  const modelLabel = m.systemName || m.model || 'Système de dosage';
+  const meta = [m.systemType, m.model].filter(Boolean).join(' · ');
+  const mediaCount = media.length;
+  const mediaLabel = mediaCount ? '📸 ' + mediaCount + ' média' + (mediaCount > 1 ? 's' : '') : 'Aucun média';
+  return '<div class="fiches-machine-card" onclick="openMachineDetail(\\\''+escapeHtml(m.id||'')+'\\\')">'+
+    (photoUrl ? '<img class="fiches-machine-photo" src="'+escapeHtml(photoUrl)+'" alt="" loading="lazy">' : '<div class="fiches-machine-photo" style="display:flex;align-items:center;justify-content:center;font-size:28px">⚙️</div>')+
+    '<div class="fiches-machine-info">'+
+      '<span class="fiches-system-chip">'+escapeHtml(m.systemType||'Système')+'</span>'+
+      '<div class="fiches-machine-name">'+escapeHtml(modelLabel)+'</div>'+
+      '<div class="fiches-machine-meta">'+escapeHtml(meta || (rootName + (subName ? ' · ' + subName : '')))+'</div>'+
+      '<div class="fiches-machine-meta">'+mediaLabel+'</div>'+
+    '</div>'+
+    '<div class="fiches-machine-arrow">›</div>'+
+  '</div>';
 }
 function buildFichesList(){
   const mount=document.getElementById('machineLibraryHome');if(!mount)return;
