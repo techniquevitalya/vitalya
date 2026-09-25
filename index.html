@@ -1830,7 +1830,10 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
         Les techniciens peuvent proposer une machine avec sa photo et ses branchements. Rien n'est publié dans les Fiches avant votre validation.
       </div>
-      <div id="machineRequestsList"><div class="machine-mini-note">Aucune demande en attente.</div></div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+  <button type="button" onclick="refreshAdminMachineRequests()" style="flex:1;background:rgba(59,206,172,.1);border:1px solid rgba(59,206,172,.25);border-radius:10px;padding:10px;font-size:12px;font-weight:800;color:var(--cyan);font-family:'Outfit',sans-serif;cursor:pointer;">🔄 Actualiser</button>
+</div>
+<div id="machineRequestsList"><div class="machine-mini-note">Aucune demande en attente.</div></div>
     </div>
 
     <!-- GESTION DE LA BIBLIOTHÈQUE -->
@@ -2108,7 +2111,8 @@ async function restoreSession() {
     showScreen('adminScreen');
     Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients(), fbLoadProductDosageSystems(), fbLoadMachineDosageSystems()]).then(() => {
       renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList(); renderMachineRequests(); renderAdminLibraryFolders(); renderProductDosages();
-      fbListenPhotos(); fbListenCats(); fbListenMachineRequests(); fbListenApprovedMachines(); fbListenProductDosages();
+      fbListenPhotos(); fbListenCats(); fbListenMachineRequests(); fbListenApprovedMachines(); fbListenProductDosageSystems(); fbListenMachineDosageSystems();
+      startAdminMachinePolling();
     });
     return;
   }
@@ -2409,7 +2413,7 @@ function fbListenMachineRequests(){
       renderMachineRequests();
       renderMyMachineRequestList();
     });
-  }catch(e){}
+  }catch(e){ console.error('Machine requests listener',e); }
 }
 function fbListenApprovedMachines(){
   if(!window._fbReady) return;
@@ -2720,6 +2724,35 @@ function renderAdminMachineMedia(media){
     return '<div class="machine-admin-media-click" data-url="'+escapeHtml(item.url)+'" data-caption="'+escapeHtml(item.name||'Photo')+'" onclick="openAdminMachineMedia(this)"><img src="'+escapeHtml(item.url)+'" alt="" loading="lazy"></div>';
   }).join('');
 }
+let _adminMachinePoll = null;
+
+async function refreshAdminMachineRequests(){
+  if(!currentUser?.isAdmin) return;
+  const btn = document.querySelector('#machineRequestsList')?.previousElementSibling?.querySelector('button');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Actualisation…'; }
+  try{
+    await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines()]);
+    renderMachineRequests();
+  }catch(e){
+    console.error('Admin refresh machine requests',e);
+    showToast('❌ Impossible de charger les demandes',true);
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='🔄 Actualiser'; }
+  }
+}
+
+function startAdminMachinePolling(){
+  if(_adminMachinePoll) clearInterval(_adminMachinePoll);
+  refreshAdminMachineRequests();
+  _adminMachinePoll = setInterval(() => {
+    if(currentUser?.isAdmin) refreshAdminMachineRequests();
+  }, 5000);
+}
+
+function stopAdminMachinePolling(){
+  if(_adminMachinePoll){ clearInterval(_adminMachinePoll); _adminMachinePoll=null; }
+}
+
 function renderMachineRequests(){
   const el=document.getElementById('machineRequestsList');if(!el)return;
 
@@ -2931,7 +2964,7 @@ async function doLogin() {
   if ((username === 'admin' || username === '') && pwd === ADMIN_PWD) {
     currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
     showScreen('adminScreen');
-    Promise.all([fbLoadPhotos(), fbLoadCats()]).then(() => {
+    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines()]).then(() => {
       renderAdminDocs();
       renderAdminCatList();
       renderAdminStats();
@@ -2940,10 +2973,9 @@ async function doLogin() {
       renderMachineRequests();
       fbListenPhotos();
       fbListenCats();
-      fbLoadMachineRequests().then(renderMachineRequests);
-      fbLoadApprovedMachines();
       fbListenMachineRequests();
       fbListenApprovedMachines();
+      startAdminMachinePolling();
     });
     return;
   }
@@ -3001,6 +3033,7 @@ function showScreen(id) {
 }
 
 function logout() {
+  stopAdminMachinePolling();
   // Save chat history for current user before logout
   if (currentUser && !currentUser.isAdmin) {
     localStorage.setItem(userHistKey(currentUser.id) + '_chat', JSON.stringify(chatHistory));
