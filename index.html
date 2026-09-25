@@ -103,6 +103,8 @@ body.light-mode .theme-toggle { background: rgba(0,0,0,0.08); }
   background:rgba(244,162,97,.10);color:var(--gold);font:800 13px 'Outfit',sans-serif;cursor:pointer;margin-top:8px
 }
 .dosage-quick-btn:active{transform:scale(.98)}
+.dosage-client-add{width:100%;border:1px solid rgba(59,206,172,.28);border-radius:12px;padding:11px 14px;background:rgba(59,206,172,.08);color:var(--cyan);font:800 13px 'Outfit',sans-serif;cursor:pointer;margin-bottom:10px}
+
 .dosage-nozzle-colors{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:10px}
 .dosage-nozzle-option{
   display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.1);border-radius:10px;
@@ -1554,6 +1556,7 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
           <div class="dosage-hero-title">💧 Dosage produits</div>
           <div class="dosage-hero-sub">Renseigne les dosages utilisés sur le terrain par client. Les informations sont partagées avec les techniciens.</div>
           <button class="dosage-add-btn" onclick="showAddProductDosageModal()">➕ Ajouter un dosage</button>
+          <button class="dosage-client-add" onclick="showAddDosageClientModal()">👤 Ajouter un client</button>
           <button class="dosage-quick-btn" onclick="showQuickProductDosageModal()">⚡ Ajout rapide : produit + dosage</button>
         </div>
         <div id="productDosagesList"></div>
@@ -2048,7 +2051,7 @@ async function restoreSession() {
     currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
     saveSession(currentUser);
     showScreen('adminScreen');
-    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages()]).then(() => {
+    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients()]).then(() => {
       renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList(); renderMachineRequests(); renderAdminLibraryFolders(); renderProductDosages();
       fbListenPhotos(); fbListenCats(); fbListenMachineRequests(); fbListenApprovedMachines(); fbListenProductDosages();
     });
@@ -2061,11 +2064,12 @@ async function restoreSession() {
   document.getElementById('topbarUser').textContent = '👤 ' + user.name;
   loadUserData(user.id);
   initTheme();
-  await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages()]);
+  await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients()]);
   fbListenMachineRequests();
   fbListenApprovedMachines();
   fbListenLibraryFolders();
   fbListenProductDosages();
+  fbListenProductDosageClients();
   buildFichesList();
   saveSession(user);
   showScreen('techScreen');
@@ -5771,8 +5775,43 @@ function fbListenProductDosages(){
     });
   }catch(e){}
 }
+const PRODUCT_DOSAGE_CLIENTS_KEY='vitalya_product_dosage_clients_v1';
+let _productDosageClientsCache={};
+
+function getProductDosageClients(){return _productDosageClientsCache||{};}
+async function fbLoadProductDosageClients(){
+  if(!window._fbReady){
+    try{_productDosageClientsCache=JSON.parse(localStorage.getItem(PRODUCT_DOSAGE_CLIENTS_KEY)||'{}')||{};}catch(e){_productDosageClientsCache={};}
+    return _productDosageClientsCache;
+  }
+  try{
+    const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/productDosageClients'));
+    _productDosageClientsCache=snap.exists()?(snap.val()||{}):{};
+    localStorage.setItem(PRODUCT_DOSAGE_CLIENTS_KEY,JSON.stringify(_productDosageClientsCache));
+  }catch(e){console.error('Product dosage clients load',e);}
+  return _productDosageClientsCache;
+}
+async function fbSaveProductDosageClients(data){
+  _productDosageClientsCache=data||{};
+  localStorage.setItem(PRODUCT_DOSAGE_CLIENTS_KEY,JSON.stringify(_productDosageClientsCache));
+  if(!window._fbReady)return;
+  try{await window._fbSet(window._fbRef(window._fbDb,'vitalya/productDosageClients'),_productDosageClientsCache);}
+  catch(e){console.error('Product dosage clients save',e);}
+}
+function fbListenProductDosageClients(){
+  if(!window._fbReady)return;
+  try{
+    window._fbOnValue(window._fbRef(window._fbDb,'vitalya/productDosageClients'),snap=>{
+      _productDosageClientsCache=snap.exists()?(snap.val()||{}):{};
+      localStorage.setItem(PRODUCT_DOSAGE_CLIENTS_KEY,JSON.stringify(_productDosageClientsCache));
+      renderProductDosages();
+    });
+  }catch(e){}
+}
 function dosageFolders(){
-  return getLibraryFolders().filter(f=>f.id!=='machines-lv').map(f=>({id:f.id,name:f.name,icon:f.icon||'📁'}));
+  const base=getLibraryFolders().filter(f=>f.id!=='machines-lv').map(f=>({id:f.id,name:f.name,icon:f.icon||'📁'}));
+  const custom=Object.values(getProductDosageClients()).map(x=>({id:x.id,name:x.name,icon:x.icon||'👤',custom:true}));
+  return base.concat(custom);
 }
 function openDosagePage(){
   switchTab('dosages');
@@ -5793,13 +5832,14 @@ function renderProductDosages(){
       }).join(''):'<div class="dosage-empty">Aucun produit renseigné pour le moment.</div>')+'</div></div>';
   }).join('');
 }
-function showAddProductDosageModal(){
+function showAddProductDosageModal(preselectedClient){
   const folders=dosageFolders();
-  const options=folders.map(f=>'<option value="'+escapeHtml(f.id)+'">'+escapeHtml(f.name)+'</option>').join('');
+  const options=folders.map(f=>'<option value="'+escapeHtml(f.id)+'"'+(preselectedClient===f.id?' selected':'')+'>'+escapeHtml(f.name)+'</option>').join('')+
+    '<option value="__new_client__">➕ Ajouter un autre client…</option>';
   showModal(
     '<div class="modal-title">💧 Ajouter un dosage produit</div>'+
     '<label class="dosage-label">Client</label>'+
-    '<select id="dosageClient" class="dosage-select"><option value="">Choisir le client…</option>'+options+'</select>'+
+    '<select id="dosageClient" class="dosage-select" onchange="handleDosageClientChoice(this)"><option value="">Choisir le client…</option>'+options+'</select>'+
     '<label class="dosage-label">Désignation du produit</label>'+
     '<input id="dosageProductName" class="dosage-input" placeholder="Ex : Suma D4.4">'+
     '<label class="dosage-label">Doseur utilisé <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">(facultatif)</span></label>'+
@@ -5839,6 +5879,37 @@ function showAddProductDosageModal(){
     '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="saveProductDosage()">✅ Enregistrer</button></div>'
   );
 }
+
+function handleDosageClientChoice(select){
+  if(select?.value==='__new_client__'){
+    showAddDosageClientModal();
+    select.value='';
+  }
+}
+function showAddDosageClientModal(){
+  showModal(
+    '<div class="modal-title">👤 Ajouter un client</div>'+
+    '<div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px">Ajoute ici un client qui n’existe pas encore dans la liste.</div>'+
+    '<label class="dosage-label">Nom du client</label>'+
+    '<input id="newDosageClientName" class="dosage-input" placeholder="Ex : Sodexo, Elior, Client X…">'+
+    '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="saveDosageClient()">✅ Ajouter le client</button></div>'
+  );
+  setTimeout(()=>document.getElementById('newDosageClientName')?.focus(),50);
+}
+async function saveDosageClient(){
+  const name=document.getElementById('newDosageClientName')?.value.trim()||'';
+  if(!name){showToast('⚠️ Indique le nom du client',true);return;}
+  const clients=getProductDosageClients();
+  const exists=Object.values(clients).find(x=>String(x.name||'').toLowerCase()===name.toLowerCase());
+  if(exists){showToast('⚠️ Ce client existe déjà',true);return;}
+  const id='client-'+Date.now();
+  clients[id]={id,name,icon:'👤',createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||''};
+  await fbSaveProductDosageClients(clients);
+  closeModal();
+  renderProductDosages();
+  showToast('✅ Client ajouté');
+}
+
 function setProductDosageType(type){
   document.getElementById('dosageTypeNozzle')?.classList.toggle('active',type==='nozzle');
   document.getElementById('dosageTypeGram')?.classList.toggle('active',type==='gram');
@@ -5860,7 +5931,7 @@ function showQuickProductDosageModal(){
     '<div class="modal-title">⚡ Ajout rapide d’un dosage</div>'+
     '<div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px">Tu peux enregistrer seulement le client, le produit et le dosage. Le doseur et la buse pourront être complétés plus tard.</div>'+
     '<label class="dosage-label">Client</label>'+
-    '<select id="quickDosageClient" class="dosage-select"><option value="">Choisir le client…</option>'+options+'</select>'+
+    '<select id="quickDosageClient" class="dosage-select" onchange="handleDosageClientChoice(this)"><option value="">Choisir le client…</option>'+options+'</select>'+
     '<label class="dosage-label">Désignation du produit</label>'+
     '<input id="quickDosageProduct" class="dosage-input" placeholder="Ex : Suma D4.4">'+
     '<label class="dosage-label">Dosage libre</label>'+
@@ -5904,7 +5975,7 @@ async function saveProductDosage(){
 // Init — load Firebase data then render
 async function initApp() {
   // Load all shared data from Firebase
-  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages()]);
+  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients()]);
   renderAdminDocs();
   renderAdminStats();
   renderIaHistory();
@@ -5920,6 +5991,7 @@ async function initApp() {
   fbListenMachineRequests();
   fbListenApprovedMachines();
   fbListenProductDosages();
+  fbListenProductDosageClients();
 }
 
 // Wait for Firebase to be ready before init
