@@ -1436,6 +1436,7 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
   window._fbSet = set;
   window._fbGet = get;
   window._fbOnValue = onValue;
+  window._fbDatabaseUrl = firebaseConfig.databaseURL;
   window._fbReady = true;
 
   // Notify app that Firebase is ready
@@ -2372,24 +2373,55 @@ function escapeHtml(value){
 function getMachineRequests(){ return _machineRequestsCache || {}; }
 function getApprovedMachines(){ return _approvedMachinesCache || {}; }
 
+async function fetchMachineRequestsRest(){
+  const base=window._fbDatabaseUrl;
+  if(!base) throw new Error('Firebase URL indisponible');
+  const resp=await fetch(base+'/vitalya/machineRequests.json?ts='+Date.now(),{cache:'no-store'});
+  if(!resp.ok) throw new Error('Firebase HTTP '+resp.status);
+  const data=await resp.json();
+  _machineRequestsCache=data && typeof data==='object' ? data : {};
+  return _machineRequestsCache;
+}
+
 async function fbLoadMachineRequests(){
   if(!window._fbReady) return getMachineRequests();
   try{
-    const snap = await window._fbGet(window._fbRef(window._fbDb,'vitalya/machineRequests'));
-    _machineRequestsCache = snap.exists() ? (snap.val() || {}) : {};
-  }catch(e){ console.error('Machine requests load',e); }
-  return _machineRequestsCache;
+    const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/machineRequests'));
+    _machineRequestsCache=snap.exists()?(snap.val()||{}):{};
+    return _machineRequestsCache;
+  }catch(e){
+    console.error('Machine requests SDK load',e);
+    try{return await fetchMachineRequestsRest();}
+    catch(restErr){console.error('Machine requests REST load',restErr);return getMachineRequests();}
+  }
 }
+
+async function fbSaveMachineRequest(id,data){
+  if(!id || !window._fbReady) return false;
+  _machineRequestsCache=_machineRequestsCache||{};
+  _machineRequestsCache[id]=data;
+  try{
+    await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests/'+id),data);
+    return true;
+  }catch(e){console.error('Machine request child save',e);return false;}
+}
+
+async function fbDeleteMachineRequest(id){
+  if(!id || !window._fbReady) return false;
+  try{
+    await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests/'+id),null);
+    if(_machineRequestsCache) delete _machineRequestsCache[id];
+    return true;
+  }catch(e){console.error('Machine request child delete',e);return false;}
+}
+
 async function fbSaveMachineRequests(data){
-  _machineRequestsCache = data || {};
+  _machineRequestsCache=data||{};
   if(!window._fbReady) return false;
   try{
     await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests'),_machineRequestsCache);
     return true;
-  }catch(e){
-    console.error('Machine requests save',e);
-    return false;
-  }
+  }catch(e){console.error('Machine requests save',e);return false;}
 }
 async function fbLoadApprovedMachines(){
   if(!window._fbReady) return getApprovedMachines();
@@ -2639,13 +2671,12 @@ async function submitMachineRequest(){
       id,folderId,subfolderId,systemType,systemName,model,machinePhoto,branchMedia,
       createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||'',status:'pending'
     };
-    const saved = await fbSaveMachineRequests(requests);
-    if(!saved){
-      throw new Error('Firebase refus d’écriture');
-    }
+    const saved = await fbSaveMachineRequest(id,requests[id]);
+    if(!saved) throw new Error('Firebase refus d’écriture');
     const verify = await fbLoadMachineRequests();
-    if(!verify[id]){
-      throw new Error('Demande non retrouvée après enregistrement');
+    if(!verify[id]) {
+      const restVerify = await fetchMachineRequestsRest();
+      if(!restVerify[id]) throw new Error('Demande non retrouvée après enregistrement');
     }
     closeModal();
     showToast('✅ Fichier envoyé — visible dans l’Admin pour validation');
@@ -2749,6 +2780,14 @@ async function refreshAdminMachineRequests(){
   }
 }
 
+window._machineRequestsFirebaseHook = true;
+window.addEventListener('firebase-ready',()=>{
+  if(currentUser?.isAdmin){
+    fbLoadMachineRequests().then(()=>renderMachineRequests()).catch(()=>{});
+    startAdminMachinePolling();
+  }
+});
+
 function startAdminMachinePolling(){
   if(_adminMachinePoll) clearInterval(_adminMachinePoll);
   refreshAdminMachineRequests();
@@ -2823,88 +2862,64 @@ function renderMachineRequests(){
 }
 
 async function approveMachineRequest(id){
-  const requests = await fbLoadMachineRequests();
-  const request = requests[id];
-  if(!request){ showToast('⚠️ Demande introuvable',true); return; }
+  const requests=await fbLoadMachineRequests();
+  const request=requests[id];
+  if(!request){showToast('⚠️ Demande introuvable',true);return;}
 
-  const machines = await fbLoadApprovedMachines();
-  machines[id] = {
-    ...request,
-    status:'approved',
-    approvedAt:Date.now(),
-    approvedBy:currentUser?.id || 'admin'
-  };
-  delete requests[id];
-
+  const machines=await fbLoadApprovedMachines();
+  machines[id]={...request,status:'approved',approvedAt:Date.now(),approvedBy:currentUser?.id||'admin'};
   await fbSaveApprovedMachines(machines);
-  await fbSaveMachineRequests(requests);
+
+  const deleted=await fbDeleteMachineRequest(id);
+  await fbLoadMachineRequests();
   renderMachineRequests();
   buildFichesList();
   renderMyMachineRequestList();
-  showToast('✅ Machine validée et publiée');
+
+  if(!deleted) showToast('⚠️ Machine validée, mais la demande n’a pas pu être retirée',true);
+  else showToast('✅ Machine validée et publiée');
 }
 
 async function rejectMachineRequest(id){
-  const requests = await fbLoadMachineRequests();
-  const request = requests[id];
-  if(!request){
-    showToast('⚠️ Demande introuvable',true);
-    return;
-  }
-  if(request.status==='rejected'){
-    showToast('ℹ️ Cette proposition est déjà refusée');
-    return;
-  }
+  const requests=await fbLoadMachineRequests();
+  const request=requests[id];
+  if(!request){showToast('⚠️ Demande introuvable',true);return;}
+  if(request.status==='rejected'){showToast('ℹ️ Cette proposition est déjà refusée');return;}
 
-  requests[id] = {
-    ...request,
-    status:'rejected',
-    rejectedAt:Date.now(),
-    rejectedBy:currentUser?.id || 'admin'
-  };
-
-  _machineRequestsCache = requests;
+  const updated={...request,status:'rejected',rejectedAt:Date.now(),rejectedBy:currentUser?.id||'admin'};
+  _machineRequestsCache[id]=updated;
   renderMachineRequests();
   renderMyMachineRequestList();
 
-  const saved = await fbSaveMachineRequests(requests);
+  const saved=await fbSaveMachineRequest(id,updated);
   if(!saved){
-    _machineRequestsCache = await fbLoadMachineRequests();
+    await fbLoadMachineRequests();
     renderMachineRequests();
     renderMyMachineRequestList();
-    showToast('❌ Le refus n’a pas pu être enregistré dans Firebase',true);
+    showToast('❌ Le refus n’a pas pu être enregistré',true);
     return;
   }
-
   showToast('❌ Proposition refusée');
 }
 
-
 async function deleteRejectedMachineRequest(id){
-  const requests = await fbLoadMachineRequests();
-  const request = requests[id];
-  if(!request){
-    showToast('⚠️ Proposition introuvable',true);
-    return;
-  }
+  const requests=await fbLoadMachineRequests();
+  const request=requests[id];
+  if(!request){showToast('⚠️ Proposition introuvable',true);return;}
   if((request.status||'pending')!=='rejected'){
-    showToast('⚠️ Seules les propositions refusées peuvent être supprimées ici',true);
+    showToast('⚠️ Seules les propositions refusées peuvent être supprimées',true);
     return;
   }
-
   if(!confirm('Supprimer cette proposition refusée de l’historique ?')) return;
 
-  delete requests[id];
-  _machineRequestsCache = requests;
-
-  const saved = await fbSaveMachineRequests(requests);
-  if(!saved){
-    _machineRequestsCache = await fbLoadMachineRequests();
+  const deleted=await fbDeleteMachineRequest(id);
+  if(!deleted){
+    await fbLoadMachineRequests();
     renderMachineRequests();
     showToast('❌ Suppression impossible',true);
     return;
   }
-
+  await fbLoadMachineRequests();
   renderMachineRequests();
   showToast('🗑 Proposition supprimée');
 }
