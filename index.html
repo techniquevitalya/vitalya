@@ -3053,12 +3053,21 @@ function buildGlobalSearchIndex(){
       action:()=>{switchTab('dosages');setTimeout(()=>scrollToDosageItem(d.id),60);}
     });
   });
+  Object.values(getMachineDosageSystems()).forEach(s=>{
+    const folder=folders.find(f=>f.id===s.folderId);
+    items.push({
+      icon:'⚙️',title:s.name,
+      meta:[folder?.name,s.subfolderId].filter(Boolean).join(' · '),
+      keywords:[s.name,folder?.name,s.subfolderId].filter(Boolean).join(' '),
+      action:()=>{switchTab('fiches');setTimeout(()=>showAddMachineModal(s.folderId,s.subfolderId,s.name),60);}
+    });
+  });
   if(typeof FICHES!=='undefined')Object.entries(FICHES).forEach(([id,f])=>{
     items.push({icon:'📄',title:f.title||id,meta:f.subtitle||'Fiche technique',keywords:[f.title,f.subtitle,f.html].filter(Boolean).join(' '),action:()=>{switchTab('fiches');setTimeout(()=>openFiche(id),60);}});
   });
   getDocs().forEach(d=>items.push({icon:'📄',title:d.name||'Document',meta:'Document',keywords:[d.name,d.ext].filter(Boolean).join(' '),action:()=>switchTab('fiches')}));
-  Object.entries(getCats()).forEach(([k,cat])=>{
-    if(cat&&cat.name)items.push({icon:cat.icon||'📁',title:cat.name,meta:'Photos · catégorie',keywords:cat.name,action:()=>{switchTab('fiches');setTimeout(()=>openDynamicGallery(k),60);}});
+  getCats().forEach(cat=>{
+    if(cat&&cat.name)items.push({icon:cat.icon||'📁',title:cat.name,meta:'Photos · catégorie',keywords:cat.name,action:()=>{switchTab('fiches');setTimeout(()=>openDynamicGallery(cat.id),60);}});
     (cat?.subs||[]).forEach(s=>items.push({icon:s.icon||'📂',title:s.name,meta:cat.name+' · Photos',keywords:[cat.name,s.name].join(' '),action:()=>{switchTab('fiches');}});
   });
   try{
