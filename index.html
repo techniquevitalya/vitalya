@@ -2379,7 +2379,7 @@ async function firebaseRestRequest(path, options={}){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),10000);
   try{
-    const cleanPath=String(path||'').replace(/^\\/+|\\/+$/g,'');
+    const cleanPath=String(path||'');
     const resp=await fetch(base+'/'+cleanPath+'.json',{
       cache:'no-store',
       ...options,
