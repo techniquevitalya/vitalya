@@ -651,8 +651,10 @@ body {
 .machine-file-count{font-size:11px;font-weight:800;color:var(--cyan);margin-top:7px}
 .machine-system-select{
   width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);
-  border-radius:12px;padding:13px 14px;color:var(--text);font:600 14px 'Outfit',sans-serif;outline:none;margin-bottom:12px
+  border-radius:12px;padding:13px 14px;color:var(--text);font:600 14px 'Outfit',sans-serif;outline:none;margin-bottom:12px;color-scheme:dark
 }
+.machine-system-select option{background:#fff;color:#111;font:600 14px 'Outfit',sans-serif}
+body.light-mode .machine-system-select{color:#111;background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.15);color-scheme:light}
 .machine-system-select:focus{border-color:var(--cyan)}
 /* ==================== MACHINES AJOUTÉES / VALIDATION ==================== */
 .machine-add-btn{width:34px;height:34px;border:none;border-radius:10px;background:rgba(59,206,172,.14);border:1px solid rgba(59,206,172,.28);color:var(--cyan);font-size:17px;cursor:pointer;flex-shrink:0}
@@ -1454,7 +1456,7 @@ body {
             <div class="library-kicker">VITALYA · BIBLIOTHÈQUE TERRAIN</div>
             <div class="library-title">Fichiers & installations</div>
             <div class="library-sub">Chaque système validé est rangé par type, puis par modèle / marque, avec ses photos et vidéos.</div>
-            <button class="library-add-btn" onclick="showAddMachineModal()">➕ Ajouter une machine</button>
+            <button class="library-add-btn" onclick="showAddMachineModal()">➕ Ajouter un système de dosage</button>
             <button class="library-request-btn" onclick="showMyMachineRequests()">📨 Mes demandes</button>
           </div>
           <div id="machineLibraryHome"></div>
@@ -2199,14 +2201,14 @@ function previewBranchPhotos(input){
 function showAddMachineModal(){
   resetMachineDraft();
   showModal(
-    '<div class="modal-title">➕ Ajouter un fichier machine</div>'+
+    '<div class="modal-title">➕ Ajouter un système de dosage</div>'+
     '<div class="machine-form-section">'+
       '<div class="machine-form-step"><span class="machine-step-num">1</span> Dossier</div>'+
       '<select id="machineLibraryFolder" class="machine-system-select" onchange="updateMachineLibrarySubfolders()"><option value="">Choisir le dossier…</option></select>'+
       '<select id="machineLibrarySubfolder" class="machine-system-select"><option value="">Sans sous-dossier</option></select>'+
     '</div>'+
     '<div class="machine-form-section">'+
-      '<div class="machine-form-step"><span class="machine-step-num">2</span> Type de système</div>'+
+      '<div class="machine-form-step"><span class="machine-step-num">2</span> Système de dosage</div>'+
       '<select id="machineSystemType" class="machine-system-select">'+
         '<option value="">Choisir…</option>'+
         '<option>Lave-vaisselle convoyeur</option>'+
@@ -2224,11 +2226,11 @@ function showAddMachineModal(){
     '</div>'+
     '<div class="machine-form-section">'+
       '<div class="machine-form-step"><span class="machine-step-num">3</span> Nom du modèle / marque</div>'+
-      '<input class="modal-input" id="machineSystemName" placeholder="Ex : Hobart, Winterhalter, D250…">'+
+      '<input class="modal-input" id="machineSystemName" placeholder="Ex : Ecolab, Diversey, D250…">'+
       '<input class="modal-input" id="machineModel" placeholder="Référence / modèle (facultatif)">'+
     '</div>'+
     '<div class="machine-form-section">'+
-      '<div class="machine-form-step"><span class="machine-step-num">4</span> Photo machine / doseur</div>'+
+      '<div class="machine-form-step"><span class="machine-step-num">4</span> Photo du système de dosage</div>'+
       '<div class="machine-file-zone" onclick="document.getElementById(\'machinePhotoInput\').click()"><div class="icon">📷</div><div class="title">Ajouter la photo principale</div><div class="sub">1 photo obligatoire</div></div>'+
       '<input type="file" id="machinePhotoInput" accept="image/*" capture="environment" style="display:none" onchange="previewMachinePhoto(this)">'+
       '<div class="machine-preview" id="machinePhotoPreview"><img id="machinePhotoImg" alt=""></div>'+
@@ -2286,7 +2288,7 @@ async function submitMachineRequest(){
   if(!folderId){showToast('⚠️ Choisis le dossier',true);return;}
   if(!systemType){showToast('⚠️ Choisis le type de système',true);return;}
   if(!systemName){showToast('⚠️ Indique le nom du modèle / la marque',true);return;}
-  if(!machineFile){showToast('⚠️ Ajoute la photo de la machine ou du doseur',true);return;}
+  if(!machineFile){showToast('⚠️ Ajoute la photo du système de dosage',true);return;}
   if(!branchFiles.length){showToast('⚠️ Ajoute au moins une photo ou vidéo de branchement',true);return;}
 
   const btn=document.querySelector('.modal-btn-primary');
@@ -2339,11 +2341,11 @@ function renderMyMachineRequestList(){
 function showMyMachineRequests(){
   showModal(
     '<div class="modal-title">📨 Mes demandes</div>' +
-    '<div class="machine-form-note" style="margin-bottom:8px">Les machines apparaissent dans les Fiches uniquement après validation admin.</div>' +
+    '<div class="machine-form-note" style="margin-bottom:8px">Les systèmes de dosage apparaissent dans les Fiches uniquement après validation admin.</div>' +
     '<div id="myMachineRequestsList"></div>' +
     '<div class="modal-btn-row" style="margin-top:14px">' +
       '<button class="modal-btn modal-btn-cancel" onclick="closeModal()">Fermer</button>' +
-      '<button class="modal-btn modal-btn-primary" onclick="closeModal();showAddMachineModal()">➕ Ajouter une machine</button>' +
+      '<button class="modal-btn modal-btn-primary" onclick="closeModal();showAddMachineModal()">➕ Ajouter un système de dosage</button>' +
     '</div>'
   );
   renderMyMachineRequestList();
