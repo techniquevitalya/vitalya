@@ -2715,7 +2715,7 @@ function getVideoPlaybackUrl(url){
   const s=String(url||'');
   if(!s) return s;
   // Force a broadly compatible MP4 delivery from Cloudinary while keeping the original file untouched.
-  if(/res\.cloudinary\.com\\//i.test(s) || /res\.cloudinary\.com\//i.test(s)){
+  if(/res\.cloudinary\.com\//i.test(s)){
     if(s.includes('/upload/') && !s.includes('/upload/f_mp4')){
       return s.replace('/upload/','/upload/f_mp4,q_auto/');
     }
@@ -5763,7 +5763,7 @@ function renderLibraryModel(m, rootName, subName){
   const meta = [m.systemType, m.model].filter(Boolean).join(' · ');
   const mediaCount = media.length;
   const mediaLabel = mediaCount ? '📸 ' + mediaCount + ' média' + (mediaCount > 1 ? 's' : '') : 'Aucun média';
-  return '<div class="fiches-machine-card" onclick="openMachineDetail(\\\''+escapeHtml(m.id||'')+'\\\')">'+
+  return '<div class="fiches-machine-card" onclick="openMachineDetail(\''+escapeHtml(m.id||'')+'\')">'+
     (photoUrl ? '<img class="fiches-machine-photo" src="'+escapeHtml(photoUrl)+'" alt="" loading="lazy">' : '<div class="fiches-machine-photo" style="display:flex;align-items:center;justify-content:center;font-size:28px">⚙️</div>')+
     '<div class="fiches-machine-info">'+
       '<span class="fiches-system-chip">'+escapeHtml(m.systemType||'Système')+'</span>'+
