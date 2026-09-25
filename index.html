@@ -2106,9 +2106,39 @@ function renderMachineAddFolderOptions(){
   const sub=document.getElementById('machineLibrarySubfolder');if(sub)sub.innerHTML='<option value="">Sans sous-dossier</option>';
 }
 function updateMachineLibrarySubfolders(){
-  const folderId=document.getElementById('machineLibraryFolder')?.value;const sub=document.getElementById('machineLibrarySubfolder');if(!sub)return;
+  const folderId=document.getElementById('machineLibraryFolder')?.value;
+  const sub=document.getElementById('machineLibrarySubfolder');
+  if(!sub)return;
   const folder=getLibraryFolders().find(f=>f.id===folderId);
   sub.innerHTML='<option value="">Sans sous-dossier</option>'+(folder?.subs||[]).map(x=>'<option value="'+escapeHtml(x.id)+'">'+escapeHtml(x.name)+'</option>').join('');
+  updateMachineSystemTypes();
+}
+
+function updateMachineSystemTypes(){
+  const folderId=document.getElementById('machineLibraryFolder')?.value||'';
+  const sel=document.getElementById('machineSystemType');
+  const otherWrap=document.getElementById('machineOtherTypeWrap');
+  if(!sel)return;
+
+  let options=[];
+  if(folderId==='machines-lv'){
+    options=['Accuratic DP','Accuratic DS','Revoflow'];
+  }else if(folderId==='diversey'){
+    options=['Poste de désinfection','QFM','DQFM','Autre'];
+  }else if(folderId){
+    options=['Autre'];
+  }
+
+  sel.innerHTML='<option value="">Choisir le système…</option>'+options.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('');
+  if(otherWrap) otherWrap.style.display='none';
+  const other=document.getElementById('machineOtherType');
+  if(other) other.value='';
+}
+
+function toggleOtherMachineType(){
+  const sel=document.getElementById('machineSystemType');
+  const wrap=document.getElementById('machineOtherTypeWrap');
+  if(wrap)wrap.style.display=sel?.value==='Autre'?'block':'none';
 }
 /* ==================== MACHINES — PROPOSITIONS TECHNICIENS ==================== */
 let _machineRequestsCache = {};
@@ -2204,26 +2234,19 @@ function showAddMachineModal(){
     '<div class="modal-title">➕ Ajouter un système de dosage</div>'+
     '<div class="machine-form-section">'+
       '<div class="machine-form-step"><span class="machine-step-num">1</span> Dossier</div>'+
-      '<select id="machineLibraryFolder" class="machine-system-select" onchange="updateMachineLibrarySubfolders()"><option value="">Choisir le dossier…</option></select>'+
+      '<select id="machineLibraryFolder" class="machine-system-select" onchange="updateMachineLibrarySubfolders();updateMachineSystemTypes()"><option value="">Choisir le dossier…</option></select>'+
       '<select id="machineLibrarySubfolder" class="machine-system-select"><option value="">Sans sous-dossier</option></select>'+
     '</div>'+
     '<div class="machine-form-section">'+
       '<div class="machine-form-step"><span class="machine-step-num">2</span> Système de dosage</div>'+
-      '<select id="machineSystemType" class="machine-system-select">'+
+      '<select id="machineSystemType" class="machine-system-select" onchange="toggleOtherMachineType()">'+
         '<option value="">Choisir le système…</option>'+
-        '<option>Accuratic DP</option>'+
-        '<option>Accuratic DS</option>'+
-        '<option>Revoflow</option>'+
-        '<option>Poste de désinfection</option>'+
-        '<option>QFM</option>'+
-        '<option>DQFM</option>'+
-        '<option>Autre</option>'+
       '</select>'+
       '<div id="machineOtherTypeWrap" style="display:none;"><input class="modal-input" id="machineOtherType" placeholder="Nom du système"></div>'+
     '</div>'+
     '<div class="machine-form-section">'+
       '<div class="machine-form-step"><span class="machine-step-num">3</span> Nom du modèle / marque</div>'+
-      '<input class="modal-input" id="machineSystemName" placeholder="Ex : Ecolab, Diversey, D250…">'+
+      '<input class="modal-input" id="machineSystemName" placeholder="Ex : Ecolab, Diversey, Revoflow…">'+
       '<input class="modal-input" id="machineModel" placeholder="Référence / modèle (facultatif)">'+
     '</div>'+
     '<div class="machine-form-section">'+
@@ -2244,10 +2267,7 @@ function showAddMachineModal(){
   );
 
   renderMachineAddFolderOptions();
-  document.getElementById('machineSystemType')?.addEventListener('change',function(){
-    const wrap=document.getElementById('machineOtherTypeWrap');
-    if(wrap)wrap.style.display=this.value==='Autre'?'block':'none';
-  });
+  updateMachineSystemTypes();
 }
 function previewBranchPhotos(input){
   const files=Array.from(input.files||[]);
