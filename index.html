@@ -87,6 +87,37 @@ body.light-mode .topbar-logo { background: linear-gradient(135deg, #0A2463, var(
 }
 body.light-mode .theme-toggle { background: rgba(0,0,0,0.08); }
 .theme-toggle:active { transform: scale(0.9); }
+.tech-logout-btn{
+  border:1px solid rgba(232,72,85,.28);
+  background:rgba(232,72,85,.10);
+  color:#FF6B75;
+  border-radius:10px;
+  padding:8px 10px;
+  font:700 12px 'Outfit',sans-serif;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.tech-logout-btn:active{transform:scale(.96)}
+.dosage-quick-btn{
+  width:100%;border:1px solid rgba(244,162,97,.3);border-radius:12px;padding:12px 14px;
+  background:rgba(244,162,97,.10);color:var(--gold);font:800 13px 'Outfit',sans-serif;cursor:pointer;margin-top:8px
+}
+.dosage-quick-btn:active{transform:scale(.98)}
+.dosage-nozzle-colors{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:10px}
+.dosage-nozzle-option{
+  display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.1);border-radius:10px;
+  padding:9px 10px;background:rgba(255,255,255,.035);color:var(--text);font:700 12px 'Outfit',sans-serif;cursor:pointer
+}
+.dosage-nozzle-option.active{border-color:rgba(59,206,172,.45);background:rgba(59,206,172,.10);color:var(--cyan)}
+.nozzle-dot{width:16px;height:16px;border-radius:50%;border:1px solid rgba(255,255,255,.28);flex-shrink:0}
+.dosage-nozzle-letters{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px}
+.dosage-letter-btn{
+  border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:9px 4px;background:rgba(255,255,255,.035);
+  color:var(--text);font:800 12px 'Outfit',sans-serif;cursor:pointer
+}
+.dosage-letter-btn.active{border-color:rgba(108,99,255,.5);background:rgba(108,99,255,.14);color:#B9B3FF}
+.dosage-selected-nozzle{font-size:11px;color:var(--muted);margin:4px 0 10px}
+
 
 /* ==================== GESTIONNAIRE FICHES ADMIN ==================== */
 .admin-cat-item {
@@ -1406,6 +1437,7 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
       <button class="topbar-btn" onclick="openPanel('favPanel')" title="Favoris">⭐</button>
       <button class="topbar-btn" onclick="exportConversation()" title="Exporter">📤</button>
       <div class="online-dot"></div>
+      <button class="tech-logout-btn" onclick="logout()">⏻ Déconnexion</button>
     </div>
   </div>
 
@@ -1522,6 +1554,7 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
           <div class="dosage-hero-title">💧 Dosage produits</div>
           <div class="dosage-hero-sub">Renseigne les dosages utilisés sur le terrain par client. Les informations sont partagées avec les techniciens.</div>
           <button class="dosage-add-btn" onclick="showAddProductDosageModal()">➕ Ajouter un dosage</button>
+          <button class="dosage-quick-btn" onclick="showQuickProductDosageModal()">⚡ Ajout rapide : produit + dosage</button>
         </div>
         <div id="productDosagesList"></div>
       </div>
@@ -5726,7 +5759,7 @@ function fbListenProductDosages(){
   }catch(e){}
 }
 function dosageFolders(){
-  return getLibraryFolders().map(f=>({id:f.id,name:f.name,icon:f.icon||'📁'}));
+  return getLibraryFolders().filter(f=>f.id!=='machines-lv').map(f=>({id:f.id,name:f.name,icon:f.icon||'📁'}));
 }
 function openDosagePage(){
   switchTab('dosages');
@@ -5742,8 +5775,8 @@ function renderProductDosages(){
     return '<div class="dosage-client-card">'+
       '<div class="dosage-client-head"><div class="dosage-client-icon">'+escapeHtml(f.icon)+'</div><div class="dosage-client-name">'+escapeHtml(f.name)+'</div><div class="dosage-client-count">'+rows.length+' dosage'+(rows.length!==1?'s':'')+'</div></div>'+
       '<div class="dosage-list">'+(rows.length?rows.map(x=>{
-        const dosage=x.dosageType==='nozzle'?'Buse '+x.dosageValue:x.dosageValue+' g';
-        return '<div class="dosage-row"><div class="dosage-product"><div class="dosage-product-name">'+escapeHtml(x.productName)+'</div><div class="dosage-product-meta">Doseur : '+escapeHtml(x.doseur||'Non précisé')+'</div></div><div class="dosage-badge">'+escapeHtml(dosage)+'</div></div>';
+        const dosage=x.dosageType==='free'?x.dosageValue:(x.dosageType==='nozzle'?'Buse '+x.dosageValue:x.dosageValue+' g');
+        return '<div class="dosage-row"><div class="dosage-product"><div class="dosage-product-name">'+escapeHtml(x.productName)+'</div><div class="dosage-product-meta">'+(x.doseur?'Doseur : '+escapeHtml(x.doseur):'Doseur non renseigné')+'</div></div><div class="dosage-badge">'+escapeHtml(dosage)+'</div></div>';
       }).join(''):'<div class="dosage-empty">Aucun produit renseigné pour le moment.</div>')+'</div></div>';
   }).join('');
 }
@@ -5756,7 +5789,7 @@ function showAddProductDosageModal(){
     '<select id="dosageClient" class="dosage-select"><option value="">Choisir le client…</option>'+options+'</select>'+
     '<label class="dosage-label">Désignation du produit</label>'+
     '<input id="dosageProductName" class="dosage-input" placeholder="Ex : Ecomax">'+
-    '<label class="dosage-label">Doseur utilisé</label>'+
+    '<label class="dosage-label">Doseur utilisé <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">(facultatif)</span></label>'+
     '<input id="dosageDoseur" class="dosage-input" list="dosageDoseurOptions" placeholder="Ex : Accuratic DP, Revoflow…">'+
     '<datalist id="dosageDoseurOptions">'+
       '<option value="Accuratic DP"><option value="Accuratic DS"><option value="Revoflow"><option value="QFM"><option value="DQFM"><option value="Poste de désinfection">'+
@@ -5767,7 +5800,27 @@ function showAddProductDosageModal(){
       '<button type="button" id="dosageTypeGram" class="dosage-type-btn" onclick="setProductDosageType(\'gram\')">⚖️ Grammage</button>'+
     '</div>'+
     '<div id="dosageNozzleWrap">'+
-      '<select id="dosageNozzle" class="dosage-select"><option value="">Choisir la couleur…</option><option>violette</option><option>jaune</option><option>bleue</option><option>rouge</option><option>verte</option><option>blanche</option><option>noire</option><option>orange</option><option>rose</option><option>grise</option><option>autre</option></select>'+
+      '<div class="dosage-label">Couleur</div>'+
+      '<div class="dosage-nozzle-colors" id="dosageNozzleColors">'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="violette" onclick="selectProductNozzle(this,\'violette\')"><span class="nozzle-dot" style="background:#8E44AD"></span>Violette</button>'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="jaune" onclick="selectProductNozzle(this,\'jaune\')"><span class="nozzle-dot" style="background:#F1C40F"></span>Jaune</button>'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="bleue" onclick="selectProductNozzle(this,\'bleue\')"><span class="nozzle-dot" style="background:#3498DB"></span>Bleue</button>'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="rouge" onclick="selectProductNozzle(this,\'rouge\')"><span class="nozzle-dot" style="background:#E74C3C"></span>Rouge</button>'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="verte" onclick="selectProductNozzle(this,\'verte\')"><span class="nozzle-dot" style="background:#2ECC71"></span>Verte</button>'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="blanche" onclick="selectProductNozzle(this,\'blanche\')"><span class="nozzle-dot" style="background:#fff"></span>Blanche</button>'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="noire" onclick="selectProductNozzle(this,\'noire\')"><span class="nozzle-dot" style="background:#111"></span>Noire</button>'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="orange" onclick="selectProductNozzle(this,\'orange\')"><span class="nozzle-dot" style="background:#E67E22"></span>Orange</button>'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="rose" onclick="selectProductNozzle(this,\'rose\')"><span class="nozzle-dot" style="background:#FF69B4"></span>Rose</button>'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="grise" onclick="selectProductNozzle(this,\'grise\')"><span class="nozzle-dot" style="background:#95A5A6"></span>Grise</button>'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="marron" onclick="selectProductNozzle(this,\'marron\')"><span class="nozzle-dot" style="background:#8B4513"></span>Marron</button>'+
+        '<button type="button" class="dosage-nozzle-option" data-nozzle="transparente" onclick="selectProductNozzle(this,\'transparente\')"><span class="nozzle-dot" style="background:linear-gradient(135deg,#fff 35%,#b7d7ff 36%,#b7d7ff 64%,#fff 65%)"></span>Transparente</button>'+
+      '</div>'+
+      '<div class="dosage-label">Buse avec lettre</div>'+
+      '<div class="dosage-nozzle-letters" id="dosageNozzleLetters">'+
+        ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R'].map(letter=>'<button type="button" class="dosage-letter-btn" data-nozzle="'+letter+'" onclick="selectProductNozzle(this,\'lettre '+letter+'\')">'+letter+'</button>').join('')+
+      '</div>'+
+      '<div class="dosage-selected-nozzle" id="dosageSelectedNozzle">Aucune buse sélectionnée</div>'+
+      '<input type="hidden" id="dosageNozzle" value="">'+
     '</div>'+
     '<div id="dosageGramWrap" style="display:none"><input id="dosageGram" class="dosage-input" type="number" min="0" step="0.1" placeholder="Ex : 1,5"></div>'+
     '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="saveProductDosage()">✅ Enregistrer</button></div>'
@@ -5780,6 +5833,41 @@ function setProductDosageType(type){
   if(nw)nw.style.display=type==='nozzle'?'block':'none';
   if(gw)gw.style.display=type==='gram'?'block':'none';
 }
+
+function selectProductNozzle(btn,value){
+  document.querySelectorAll('#dosageNozzleColors .dosage-nozzle-option,#dosageNozzleLetters .dosage-letter-btn').forEach(b=>b.classList.remove('active'));
+  btn?.classList.add('active');
+  const input=document.getElementById('dosageNozzle');if(input)input.value=value;
+  const label=document.getElementById('dosageSelectedNozzle');if(label)label.textContent='Buse sélectionnée : '+value;
+}
+function showQuickProductDosageModal(){
+  const folders=dosageFolders();
+  const options=folders.map(f=>'<option value="'+escapeHtml(f.id)+'">'+escapeHtml(f.name)+'</option>').join('');
+  showModal(
+    '<div class="modal-title">⚡ Ajout rapide d’un dosage</div>'+
+    '<div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px">Tu peux enregistrer seulement le client, le produit et le dosage. Le doseur et la buse pourront être complétés plus tard.</div>'+
+    '<label class="dosage-label">Client</label>'+
+    '<select id="quickDosageClient" class="dosage-select"><option value="">Choisir le client…</option>'+options+'</select>'+
+    '<label class="dosage-label">Désignation du produit</label>'+
+    '<input id="quickDosageProduct" class="dosage-input" placeholder="Ex : Ecomax">'+
+    '<label class="dosage-label">Dosage libre</label>'+
+    '<input id="quickDosageValue" class="dosage-input" placeholder="Ex : Buse N / 1,5 g / 2 doses">'+
+    '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="saveQuickProductDosage()">✅ Enregistrer</button></div>'
+  );
+}
+async function saveQuickProductDosage(){
+  const folderId=document.getElementById('quickDosageClient')?.value||'';
+  const productName=document.getElementById('quickDosageProduct')?.value.trim()||'';
+  const dosageValue=document.getElementById('quickDosageValue')?.value.trim()||'';
+  if(!folderId){showToast('⚠️ Choisis le client',true);return;}
+  if(!productName){showToast('⚠️ Indique le produit',true);return;}
+  if(!dosageValue){showToast('⚠️ Indique le dosage',true);return;}
+  const data=getProductDosages(),id='dosage-'+Date.now();
+  data[id]={id,folderId,productName,doseur:'',dosageType:'free',dosageValue,createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||''};
+  await fbSaveProductDosages(data);
+  closeModal();renderProductDosages();showToast('✅ Dosage ajouté');
+}
+
 async function saveProductDosage(){
   const folderId=document.getElementById('dosageClient')?.value||'';
   const productName=document.getElementById('dosageProductName')?.value.trim()||'';
@@ -5789,13 +5877,13 @@ async function saveProductDosage(){
   const dosageType=document.getElementById('dosageTypeGram')?.classList.contains('active')?'gram':'nozzle';
   if(!folderId){showToast('⚠️ Choisis le client',true);return;}
   if(!productName){showToast('⚠️ Indique le produit',true);return;}
-  if(!doseur){showToast('⚠️ Indique le doseur utilisé',true);return;}
+  // Le doseur est facultatif : on peut enregistrer le produit avec son dosage seul.
   if(dosageType==='nozzle'&&!nozzle){showToast('⚠️ Choisis la couleur de buse',true);return;}
   const gramValue=String(gram).trim().replace(',','.');
   if(dosageType==='gram'&&(!gramValue||Number(gramValue)<=0)){showToast('⚠️ Indique le grammage',true);return;}
   const data=getProductDosages();
   const id='dosage-'+Date.now();
-  data[id]={id,folderId,productName,doseur,dosageType,dosageValue:dosageType==='nozzle'?nozzle:String(gram).replace(',','.'),createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||''};
+  data[id]={id,folderId,productName,doseur:doseur||'',dosageType,dosageValue:dosageType==='nozzle'?nozzle:gramValue,createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||''};
   await fbSaveProductDosages(data);
   closeModal();renderProductDosages();showToast('✅ Dosage ajouté');
 }
