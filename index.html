@@ -2051,7 +2051,7 @@ async function restoreSession() {
     currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
     saveSession(currentUser);
     showScreen('adminScreen');
-    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients()]).then(() => {
+    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients(), fbLoadProductDosageSystems()]).then(() => {
       renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList(); renderMachineRequests(); renderAdminLibraryFolders(); renderProductDosages();
       fbListenPhotos(); fbListenCats(); fbListenMachineRequests(); fbListenApprovedMachines(); fbListenProductDosages();
     });
@@ -2064,12 +2064,14 @@ async function restoreSession() {
   document.getElementById('topbarUser').textContent = '👤 ' + user.name;
   loadUserData(user.id);
   initTheme();
-  await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients()]);
+  await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients(), fbLoadProductDosageSystems()]);
   fbListenMachineRequests();
   fbListenApprovedMachines();
   fbListenLibraryFolders();
   fbListenProductDosages();
   fbListenProductDosageClients();
+  fbListenProductDosageSystems();
+  fbListenProductDosageSystems();
   buildFichesList();
   saveSession(user);
   showScreen('techScreen');
@@ -2213,9 +2215,9 @@ function updateMachineSystemTypes(){
   if(folderId==='machines-lv'){
     options=['Accuratic DP','Accuratic DS','Revoflow'];
   }else if(folderId==='diversey'){
-    options=['Poste de désinfection','QFM','DQFM','Autre'];
+    options=['Poste de désinfection','QFM','DQFM'];
   }else if(folderId){
-    options=['Autres'];
+    options=[];
   }
 
   sel.innerHTML='<option value="">Choisir le système…</option>'+options.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('');
@@ -2227,7 +2229,7 @@ function updateMachineSystemTypes(){
 function toggleOtherMachineType(){
   const sel=document.getElementById('machineSystemType');
   const wrap=document.getElementById('machineOtherTypeWrap');
-  if(wrap)wrap.style.display=sel?.value==='Autre'?'block':'none';
+  if(wrap)wrap.style.display='none';
 }
 /* ==================== MACHINES — PROPOSITIONS TECHNICIENS ==================== */
 let _machineRequestsCache = {};
@@ -2385,7 +2387,7 @@ async function submitMachineRequest(){
   const folderId=document.getElementById('machineLibraryFolder')?.value||'';
   const subfolderId=document.getElementById('machineLibrarySubfolder')?.value||'';
   const typeSelect=document.getElementById('machineSystemType');
-  const systemType=typeSelect?.value==='Autre' ? (document.getElementById('machineOtherType')?.value.trim()||'') : (typeSelect?.value||'');
+  const systemType=(typeSelect?.value||'');
   const systemName=document.getElementById('machineSystemName')?.value.trim();
   const model=document.getElementById('machineModel')?.value.trim();
   const machineFile=document.getElementById('machinePhotoInput')?.files?.[0];
@@ -5808,6 +5810,46 @@ function fbListenProductDosageClients(){
     });
   }catch(e){}
 }
+const PRODUCT_DOSAGE_SYSTEMS_KEY='vitalya_product_dosage_systems_v1';
+let _productDosageSystemsCache={};
+
+function getProductDosageSystems(){return _productDosageSystemsCache||{};}
+async function fbLoadProductDosageSystems(){
+  if(!window._fbReady){
+    try{_productDosageSystemsCache=JSON.parse(localStorage.getItem(PRODUCT_DOSAGE_SYSTEMS_KEY)||'{}')||{};}catch(e){_productDosageSystemsCache={};}
+    return _productDosageSystemsCache;
+  }
+  try{
+    const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/productDosageSystems'));
+    _productDosageSystemsCache=snap.exists()?(snap.val()||{}):{};
+    localStorage.setItem(PRODUCT_DOSAGE_SYSTEMS_KEY,JSON.stringify(_productDosageSystemsCache));
+  }catch(e){console.error('Product dosage systems load',e);}
+  return _productDosageSystemsCache;
+}
+async function fbSaveProductDosageSystems(data){
+  _productDosageSystemsCache=data||{};
+  localStorage.setItem(PRODUCT_DOSAGE_SYSTEMS_KEY,JSON.stringify(_productDosageSystemsCache));
+  if(!window._fbReady)return;
+  try{await window._fbSet(window._fbRef(window._fbDb,'vitalya/productDosageSystems'),_productDosageSystemsCache);}
+  catch(e){console.error('Product dosage systems save',e);}
+}
+function fbListenProductDosageSystems(){
+  if(!window._fbReady)return;
+  try{
+    window._fbOnValue(window._fbRef(window._fbDb,'vitalya/productDosageSystems'),snap=>{
+      _productDosageSystemsCache=snap.exists()?(snap.val()||{}):{};
+      localStorage.setItem(PRODUCT_DOSAGE_SYSTEMS_KEY,JSON.stringify(_productDosageSystemsCache));
+    });
+  }catch(e){}
+}
+function productDosageSystemList(){
+  const base=[
+    'Accuratic DP','Accuratic DS','Revoflow','QFM','DQFM','Poste de désinfection'
+  ];
+  const custom=Object.values(getProductDosageSystems()).map(x=>x.name).filter(Boolean);
+  return [...new Set(base.concat(custom))];
+}
+
 function dosageFolders(){
   const base=getLibraryFolders().filter(f=>f.id!=='machines-lv').map(f=>({id:f.id,name:f.name,icon:f.icon||'📁'}));
   const custom=Object.values(getProductDosageClients()).map(x=>({id:x.id,name:x.name,icon:x.icon||'👤',custom:true}));
@@ -5835,7 +5877,7 @@ function renderProductDosages(){
 function showAddProductDosageModal(preselectedClient){
   const folders=dosageFolders();
   const options=folders.map(f=>'<option value="'+escapeHtml(f.id)+'"'+(preselectedClient===f.id?' selected':'')+'>'+escapeHtml(f.name)+'</option>').join('')+
-    '<option value="__new_client__">➕ Autre client…</option>';
+    '';
   showModal(
     '<div class="modal-title">💧 Ajouter un dosage produit</div>'+
     '<label class="dosage-label">Client</label>'+
@@ -5843,10 +5885,11 @@ function showAddProductDosageModal(preselectedClient){
     '<label class="dosage-label">Désignation du produit</label>'+
     '<input id="dosageProductName" class="dosage-input" placeholder="Ex : Suma D4.4">'+
     '<label class="dosage-label">Doseur utilisé <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">(facultatif)</span></label>'+
-    '<input id="dosageDoseur" class="dosage-input" list="dosageDoseurOptions" placeholder="Ex : Accuratic DP, Revoflow…">'+
-    '<datalist id="dosageDoseurOptions">'+
-      '<option value="Accuratic DP"><option value="Accuratic DS"><option value="Revoflow"><option value="QFM"><option value="DQFM"><option value="Poste de désinfection">'+
-    '</datalist>'+
+    '<select id="dosageDoseur" class="dosage-select" onchange="handleDosageSystemChoice(this)">'+
+      '<option value="">Choisir le système de dosage…</option>'+
+      productDosageSystemList().map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('')+
+      '<option value="__new_system__">➕ Ajouter un système de dosage…</option>'+
+    '</select>'+
     '<label class="dosage-label">Dosage</label>'+
     '<div class="dosage-type-row">'+
       '<button type="button" id="dosageTypeNozzle" class="dosage-type-btn active" onclick="setProductDosageType(\'nozzle\')">🌈 Couleur de buse</button>'+
@@ -5953,6 +5996,35 @@ async function saveQuickProductDosage(){
   closeModal();renderProductDosages();showToast('✅ Dosage ajouté');
 }
 
+function handleDosageSystemChoice(select){
+  if(select?.value==='__new_system__'){
+    showAddDosageSystemModal();
+    select.value='';
+  }
+}
+function showAddDosageSystemModal(){
+  showModal(
+    '<div class="modal-title">⚙️ Ajouter un système de dosage</div>'+
+    '<div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px">Ajoute un système qui n’existe pas encore dans la liste.</div>'+
+    '<label class="dosage-label">Nom du système</label>'+
+    '<input id="newDosageSystemName" class="dosage-input" placeholder="Ex : SuperDose X">'+
+    '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="saveDosageSystem()">✅ Ajouter</button></div>'
+  );
+  setTimeout(()=>document.getElementById('newDosageSystemName')?.focus(),50);
+}
+async function saveDosageSystem(){
+  const name=document.getElementById('newDosageSystemName')?.value.trim()||'';
+  if(!name){showToast('⚠️ Indique le nom du système',true);return;}
+  const systems=getProductDosageSystems();
+  const exists=productDosageSystemList().some(x=>x.toLowerCase()===name.toLowerCase());
+  if(exists){showToast('⚠️ Ce système existe déjà',true);return;}
+  const id='system-'+Date.now();
+  systems[id]={id,name,createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||''};
+  await fbSaveProductDosageSystems(systems);
+  closeModal();
+  showToast('✅ Système ajouté');
+}
+
 async function saveProductDosage(){
   const folderId=document.getElementById('dosageClient')?.value||'';
   const productName=document.getElementById('dosageProductName')?.value.trim()||'';
@@ -5976,7 +6048,7 @@ async function saveProductDosage(){
 // Init — load Firebase data then render
 async function initApp() {
   // Load all shared data from Firebase
-  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients()]);
+  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients(), fbLoadProductDosageSystems()]);
   renderAdminDocs();
   renderAdminStats();
   renderIaHistory();
