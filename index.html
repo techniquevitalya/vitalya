@@ -523,6 +523,16 @@ body {
 .tab-page { display: none; height: 100%; flex-direction: column; overflow: hidden; }
 .tab-page.active { display: flex; }
 
+/* ==================== ADMIN BIBLIOTHÈQUE ==================== */
+.library-admin-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:14px;margin-bottom:9px;overflow:hidden}
+.library-admin-head{display:flex;align-items:center;gap:9px;padding:11px 12px}
+.library-admin-icon{width:34px;height:34px;border-radius:10px;background:rgba(244,162,97,.12);border:1px solid rgba(244,162,97,.22);display:flex;align-items:center;justify-content:center}
+.library-admin-info{flex:1;min-width:0}.library-admin-name{font-size:13px;font-weight:800}.library-admin-meta{font-size:10px;color:var(--muted);margin-top:2px}
+.library-admin-actions{display:flex;gap:5px}.library-admin-btn{border:0;border-radius:8px;padding:6px 8px;font-size:11px;font-weight:800;cursor:pointer}
+.library-admin-btn.add{background:rgba(59,206,172,.12);color:var(--cyan)}.library-admin-btn.edit{background:rgba(108,99,255,.12);color:#A59DFF}.library-admin-btn.del{background:rgba(232,72,85,.1);color:#FF6B75}
+.library-admin-subs{padding:0 10px 10px}.library-admin-sub{display:flex;align-items:center;gap:7px;padding:8px 9px;border-radius:9px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);margin-top:6px}
+.library-admin-sub-name{flex:1;font-size:12px;font-weight:700}.library-admin-sub-actions{display:flex;gap:4px}
+
 /* ==================== INTERFACE ÉPURÉE ==================== */
 #techScreen .topbar-right .topbar-btn,
 #techScreen .topbar-right .theme-toggle { display:none; }
@@ -1692,6 +1702,16 @@ body {
       <div id="machineRequestsList"><div class="machine-mini-note">Aucune demande en attente.</div></div>
     </div>
 
+    <!-- GESTION DE LA BIBLIOTHÈQUE -->
+    <div class="admin-section">
+      <h3>📁 Gestion des fichiers</h3>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+        Crée, renomme ou supprime les dossiers et sous-dossiers visibles par les techniciens.
+      </div>
+      <button onclick="showAddLibraryFolderModal()" style="width:100%;background:linear-gradient(135deg,var(--cyan),#2BA893);border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;color:var(--primary);font-family:'Outfit',sans-serif;cursor:pointer;margin-bottom:12px;">➕ Créer un dossier</button>
+      <div id="adminLibraryFolders"></div>
+    </div>
+
     <!-- GESTION TECHNICIENS -->
     <div class="admin-section">
       <h3>👥 Gestion des Techniciens</h3>
@@ -1955,8 +1975,8 @@ async function restoreSession() {
     currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
     saveSession(currentUser);
     showScreen('adminScreen');
-    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines()]).then(() => {
-      renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList(); renderMachineRequests();
+    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders()]).then(() => {
+      renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList(); renderMachineRequests(); renderAdminLibraryFolders();
       fbListenPhotos(); fbListenCats(); fbListenMachineRequests(); fbListenApprovedMachines();
     });
     return;
@@ -1968,13 +1988,125 @@ async function restoreSession() {
   document.getElementById('topbarUser').textContent = '👤 ' + user.name;
   loadUserData(user.id);
   initTheme();
-  await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines()]);
+  await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders()]);
   fbListenMachineRequests();
   fbListenApprovedMachines();
+  fbListenLibraryFolders();
   buildFichesList();
   saveSession(user);
   showScreen('techScreen');
   switchTab('fiches');
+}
+
+/* ==================== BIBLIOTHÈQUE ADMINISTRABLE ==================== */
+const LIBRARY_FOLDERS_KEY='vitalya_library_folders_v1';
+const DEFAULT_LIBRARY_FOLDERS=[
+  {id:'machines-lv',name:'Machines Lave-Vaisselle',icon:'🍽️',subs:[
+    {id:'monobain',name:'Monobain'},
+    {id:'convoyeur',name:'Convoyeur'},
+    {id:'lave-batterie',name:'Lave-batterie'},
+    {id:'lave-verres',name:'Lave-verres'}
+  ]},
+  {id:'ecolab',name:'Système Ecolab',icon:'🟦',subs:[]},
+  {id:'diversey',name:'Diversey',icon:'🟩',subs:[]},
+  {id:'plg',name:'PLG',icon:'🟪',subs:[]},
+  {id:'hps',name:'HPS',icon:'🟨',subs:[]},
+  {id:'kiehl',name:'Kiehl',icon:'🟧',subs:[]},
+  {id:'ext',name:'EXT',icon:'📁',subs:[]}
+];
+let _libraryFoldersCache=null;
+function getLibraryFolders(){
+  if(_libraryFoldersCache)return _libraryFoldersCache;
+  try{
+    const raw=localStorage.getItem(LIBRARY_FOLDERS_KEY);
+    if(raw){_libraryFoldersCache=JSON.parse(raw);return _libraryFoldersCache;}
+  }catch(e){}
+  _libraryFoldersCache=DEFAULT_LIBRARY_FOLDERS.map(f=>({...f,subs:(f.subs||[]).map(s=>({...s}))}));
+  return _libraryFoldersCache;
+}
+async function fbLoadLibraryFolders(){
+  if(!window._fbReady)return getLibraryFolders();
+  try{
+    const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/libraryFolders'));
+    if(snap.exists())_libraryFoldersCache=snap.val()||DEFAULT_LIBRARY_FOLDERS;
+    else{_libraryFoldersCache=getLibraryFolders();await fbSaveLibraryFolders(_libraryFoldersCache);}
+    localStorage.setItem(LIBRARY_FOLDERS_KEY,JSON.stringify(_libraryFoldersCache));
+  }catch(e){console.error('Library folders load',e);}
+  return getLibraryFolders();
+}
+async function fbSaveLibraryFolders(data){
+  _libraryFoldersCache=data||[];
+  localStorage.setItem(LIBRARY_FOLDERS_KEY,JSON.stringify(_libraryFoldersCache));
+  if(!window._fbReady)return;
+  try{await window._fbSet(window._fbRef(window._fbDb,'vitalya/libraryFolders'),_libraryFoldersCache);}catch(e){console.error('Library folders save',e);}
+}
+function fbListenLibraryFolders(){
+  if(!window._fbReady)return;
+  try{window._fbOnValue(window._fbRef(window._fbDb,'vitalya/libraryFolders'),snap=>{
+    if(snap.exists()){_libraryFoldersCache=snap.val()||[];localStorage.setItem(LIBRARY_FOLDERS_KEY,JSON.stringify(_libraryFoldersCache));renderAdminLibraryFolders();buildFichesList();renderMachineAddFolderOptions();}
+  });}catch(e){}
+}
+function renderAdminLibraryFolders(){
+  const el=document.getElementById('adminLibraryFolders');if(!el)return;
+  const folders=getLibraryFolders();
+  el.innerHTML=folders.map((f,i)=>'<div class="library-admin-item"><div class="library-admin-head"><div class="library-admin-icon">'+(f.icon||'📁')+'</div><div class="library-admin-info"><div class="library-admin-name">'+escapeHtml(f.name)+'</div><div class="library-admin-meta">'+(f.subs||[]).length+' sous-dossier'+((f.subs||[]).length!==1?'s':'')+'</div></div><div class="library-admin-actions"><button class="library-admin-btn add" onclick="showAddLibrarySubModal('+i+')">➕</button><button class="library-admin-btn edit" onclick="showEditLibraryFolderModal('+i+')">✏️</button><button class="library-admin-btn del" onclick="deleteLibraryFolder('+i+')">🗑</button></div></div><div class="library-admin-subs">'+(f.subs||[]).map((sub,si)=>'<div class="library-admin-sub"><span>📂</span><div class="library-admin-sub-name">'+escapeHtml(sub.name)+'</div><div class="library-admin-sub-actions"><button class="library-admin-btn edit" onclick="showEditLibrarySubModal('+i+','+si+')">✏️</button><button class="library-admin-btn del" onclick="deleteLibrarySub('+i+','+si+')">🗑</button></div></div>').join('')+'</div></div>').join('');
+}
+function showAddLibraryFolderModal(){
+  showModal('<div class="modal-title">📁 Nouveau dossier</div><input class="modal-input" id="libFolderName" placeholder="Nom du dossier"><input class="modal-input" id="libFolderIcon" placeholder="Emoji / icône (ex : 📁)"><div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="addLibraryFolder()">Créer</button></div>');
+}
+async function addLibraryFolder(){
+  const name=document.getElementById('libFolderName')?.value.trim();const icon=document.getElementById('libFolderIcon')?.value.trim()||'📁';
+  if(!name){showToast('⚠️ Nom obligatoire',true);return;}
+  const folders=getLibraryFolders();folders.push({id:'folder-'+Date.now(),name,icon,subs:[]});await fbSaveLibraryFolders(folders);closeModal();renderAdminLibraryFolders();renderMachineAddFolderOptions();buildFichesList();showToast('✅ Dossier créé');
+}
+function showEditLibraryFolderModal(i){
+  const f=getLibraryFolders()[i];if(!f)return;
+  showModal('<div class="modal-title">✏️ Modifier le dossier</div><input class="modal-input" id="libFolderName" value="'+escapeHtml(f.name)+'"><input class="modal-input" id="libFolderIcon" value="'+escapeHtml(f.icon||'📁')+'"><div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="saveLibraryFolder('+i+')">Enregistrer</button></div>');
+}
+async function saveLibraryFolder(i){
+  const folders=getLibraryFolders();if(!folders[i])return;
+  folders[i].name=document.getElementById('libFolderName')?.value.trim()||folders[i].name;
+  folders[i].icon=document.getElementById('libFolderIcon')?.value.trim()||folders[i].icon;
+  await fbSaveLibraryFolders(folders);closeModal();renderAdminLibraryFolders();buildFichesList();showToast('✅ Dossier modifié');
+}
+async function deleteLibraryFolder(i){
+  const folders=getLibraryFolders();if(!folders[i])return;
+  if(!confirm('Supprimer ce dossier ? Les fichiers déjà validés ne seront pas supprimés.'))return;
+  folders.splice(i,1);await fbSaveLibraryFolders(folders);renderAdminLibraryFolders();renderMachineAddFolderOptions();buildFichesList();showToast('Dossier supprimé');
+}
+function showAddLibrarySubModal(i){
+  showModal('<div class="modal-title">📂 Nouveau sous-dossier</div><input class="modal-input" id="libSubName" placeholder="Ex : Monobain"><div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="addLibrarySub('+i+')">Créer</button></div>');
+}
+async function addLibrarySub(i){
+  const name=document.getElementById('libSubName')?.value.trim();if(!name){showToast('⚠️ Nom obligatoire',true);return;}
+  const folders=getLibraryFolders();if(!folders[i])return;
+  folders[i].subs=folders[i].subs||[];folders[i].subs.push({id:'sub-'+Date.now(),name});
+  await fbSaveLibraryFolders(folders);closeModal();renderAdminLibraryFolders();renderMachineAddFolderOptions();showToast('✅ Sous-dossier créé');
+}
+function showEditLibrarySubModal(i,si){
+  const s=getLibraryFolders()[i]?.subs?.[si];if(!s)return;
+  showModal('<div class="modal-title">✏️ Modifier le sous-dossier</div><input class="modal-input" id="libSubName" value="'+escapeHtml(s.name)+'"><div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="saveLibrarySub('+i+','+si+')">Enregistrer</button></div>');
+}
+async function saveLibrarySub(i,si){
+  const folders=getLibraryFolders();const sub=folders[i]?.subs?.[si];if(!sub)return;
+  sub.name=document.getElementById('libSubName')?.value.trim()||sub.name;
+  await fbSaveLibraryFolders(folders);closeModal();renderAdminLibraryFolders();renderMachineAddFolderOptions();buildFichesList();showToast('✅ Sous-dossier modifié');
+}
+async function deleteLibrarySub(i,si){
+  const folders=getLibraryFolders();if(!folders[i]?.subs?.[si])return;
+  if(!confirm('Supprimer ce sous-dossier ? Les fichiers déjà validés resteront accessibles.'))return;
+  folders[i].subs.splice(si,1);await fbSaveLibraryFolders(folders);renderAdminLibraryFolders();renderMachineAddFolderOptions();buildFichesList();showToast('Sous-dossier supprimé');
+}
+function renderMachineAddFolderOptions(){
+  const sel=document.getElementById('machineLibraryFolder');if(!sel)return;
+  const folders=getLibraryFolders();
+  sel.innerHTML='<option value="">Choisir le dossier…</option>'+folders.map(f=>'<option value="'+escapeHtml(f.id)+'">'+escapeHtml(f.name)+'</option>').join('');
+  const sub=document.getElementById('machineLibrarySubfolder');if(sub)sub.innerHTML='<option value="">Sans sous-dossier</option>';
+}
+function updateMachineLibrarySubfolders(){
+  const folderId=document.getElementById('machineLibraryFolder')?.value;const sub=document.getElementById('machineLibrarySubfolder');if(!sub)return;
+  const folder=getLibraryFolders().find(f=>f.id===folderId);
+  sub.innerHTML='<option value="">Sans sous-dossier</option>'+(folder?.subs||[]).map(x=>'<option value="'+escapeHtml(x.id)+'">'+escapeHtml(x.name)+'</option>').join('');
 }
 /* ==================== MACHINES — PROPOSITIONS TECHNICIENS ==================== */
 let _machineRequestsCache = {};
@@ -2069,7 +2201,12 @@ function showAddMachineModal(){
   showModal(
     '<div class="modal-title">➕ Ajouter un fichier machine</div>'+
     '<div class="machine-form-section">'+
-      '<div class="machine-form-step"><span class="machine-step-num">1</span> Type de système</div>'+
+      '<div class="machine-form-step"><span class="machine-step-num">1</span> Dossier</div>'+
+      '<select id="machineLibraryFolder" class="machine-system-select" onchange="updateMachineLibrarySubfolders()"><option value="">Choisir le dossier…</option></select>'+
+      '<select id="machineLibrarySubfolder" class="machine-system-select"><option value="">Sans sous-dossier</option></select>'+
+    '</div>'+
+    '<div class="machine-form-section">'+
+      '<div class="machine-form-step"><span class="machine-step-num">2</span> Type de système</div>'+
       '<select id="machineSystemType" class="machine-system-select">'+
         '<option value="">Choisir…</option>'+
         '<option>Lave-vaisselle convoyeur</option>'+
@@ -2086,18 +2223,18 @@ function showAddMachineModal(){
       '<div id="machineOtherTypeWrap" style="display:none;"><input class="modal-input" id="machineOtherType" placeholder="Nom du système"></div>'+
     '</div>'+
     '<div class="machine-form-section">'+
-      '<div class="machine-form-step"><span class="machine-step-num">2</span> Nom du modèle / marque</div>'+
+      '<div class="machine-form-step"><span class="machine-step-num">3</span> Nom du modèle / marque</div>'+
       '<input class="modal-input" id="machineSystemName" placeholder="Ex : Hobart, Winterhalter, D250…">'+
       '<input class="modal-input" id="machineModel" placeholder="Référence / modèle (facultatif)">'+
     '</div>'+
     '<div class="machine-form-section">'+
-      '<div class="machine-form-step"><span class="machine-step-num">3</span> Photo machine / doseur</div>'+
+      '<div class="machine-form-step"><span class="machine-step-num">4</span> Photo machine / doseur</div>'+
       '<div class="machine-file-zone" onclick="document.getElementById(\'machinePhotoInput\').click()"><div class="icon">📷</div><div class="title">Ajouter la photo principale</div><div class="sub">1 photo obligatoire</div></div>'+
       '<input type="file" id="machinePhotoInput" accept="image/*" capture="environment" style="display:none" onchange="previewMachinePhoto(this)">'+
       '<div class="machine-preview" id="machinePhotoPreview"><img id="machinePhotoImg" alt=""></div>'+
     '</div>'+
     '<div class="machine-form-section">'+
-      '<div class="machine-form-step"><span class="machine-step-num">4</span> Photos / vidéos des branchements</div>'+
+      '<div class="machine-form-step"><span class="machine-step-num">5</span> Photos / vidéos des branchements</div>'+
       '<div class="machine-file-zone" onclick="document.getElementById(\'branchMediaInput\').click()"><div class="icon">📸</div><div class="title">Ajouter les branchements</div><div class="sub">Photos et vidéos · plusieurs fichiers</div></div>'+
       '<input type="file" id="branchMediaInput" accept="image/*,video/*" multiple style="display:none" onchange="previewBranchPhotos(this)">'+
       '<div id="branchPhotoCount" class="machine-file-count"></div>'+
@@ -2107,6 +2244,7 @@ function showAddMachineModal(){
     '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="submitMachineRequest()">📨 Envoyer</button></div>'
   );
 
+  renderMachineAddFolderOptions();
   document.getElementById('machineSystemType')?.addEventListener('change',function(){
     const wrap=document.getElementById('machineOtherTypeWrap');
     if(wrap)wrap.style.display=this.value==='Autre'?'block':'none';
@@ -2136,6 +2274,8 @@ async function uploadMachineMedia(file,folder){
 }
 
 async function submitMachineRequest(){
+  const folderId=document.getElementById('machineLibraryFolder')?.value||'';
+  const subfolderId=document.getElementById('machineLibrarySubfolder')?.value||'';
   const typeSelect=document.getElementById('machineSystemType');
   const systemType=typeSelect?.value==='Autre' ? (document.getElementById('machineOtherType')?.value.trim()||'') : (typeSelect?.value||'');
   const systemName=document.getElementById('machineSystemName')?.value.trim();
@@ -2143,6 +2283,7 @@ async function submitMachineRequest(){
   const machineFile=document.getElementById('machinePhotoInput')?.files?.[0];
   const branchFiles=_machineDraft.branchFiles||[];
 
+  if(!folderId){showToast('⚠️ Choisis le dossier',true);return;}
   if(!systemType){showToast('⚠️ Choisis le type de système',true);return;}
   if(!systemName){showToast('⚠️ Indique le nom du modèle / la marque',true);return;}
   if(!machineFile){showToast('⚠️ Ajoute la photo de la machine ou du doseur',true);return;}
@@ -2160,7 +2301,7 @@ async function submitMachineRequest(){
     const requests=await fbLoadMachineRequests();
     const id='machine-'+Date.now();
     requests[id]={
-      id,systemType,systemName,model,machinePhoto,branchMedia,
+      id,folderId,subfolderId,systemType,systemName,model,machinePhoto,branchMedia,
       createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||'',status:'pending'
     };
     await fbSaveMachineRequests(requests);
@@ -4204,6 +4345,7 @@ initTheme();
 // Restaurer automatiquement la dernière connexion si elle est encore valide.
 fbLoadMachineRequests();
 fbLoadApprovedMachines();
+fbLoadLibraryFolders();
 
 window.addEventListener('load', () => { setTimeout(restoreSession, 0); });
 
@@ -4951,79 +5093,38 @@ function normalizeMachineMedia(m){
   return out;
 }
 function buildFichesList(){
-  const mount=document.getElementById('machineLibraryHome');
-  if(!mount) return;
-  const machines=Object.values(getApprovedMachines())
-    .filter(m=>m.status==='approved')
-    .sort((a,b)=>(b.approvedAt||b.createdAt||0)-(a.approvedAt||a.createdAt||0));
-
-  if(!machines.length){
-    mount.innerHTML='<div class="library-empty">Aucun fichier validé pour le moment.</div>';
-    return;
-  }
-
-  const roots={};
+  const mount=document.getElementById('machineLibraryHome');if(!mount)return;
+  const machines=Object.values(getApprovedMachines()).filter(m=>m.status==='approved').sort((a,b)=>(b.approvedAt||b.createdAt||0)-(a.approvedAt||a.createdAt||0));
+  const folders=getLibraryFolders();
+  const unknown={};
+  const groups={};
+  folders.forEach(f=>groups[f.id]=[]);
   machines.forEach(m=>{
-    const g=libraryGroupForMachine(m);
-    roots[g.root] ||= {};
-    const sub=g.sub || '__direct__';
-    roots[g.root][sub] ||= [];
-    roots[g.root][sub].push(m);
+    if(groups[m.folderId]) groups[m.folderId].push(m);
+    else { unknown[m.folderId||'other'] ||= []; unknown[m.folderId||'other'].push(m); }
   });
+  Object.entries(unknown).forEach(([id,list])=>{ if(!groups[id])groups[id]=list; });
 
+  if(!machines.length){mount.innerHTML='<div class="library-empty">Aucun fichier validé pour le moment.</div>';return;}
   let html='';
-  Object.entries(roots).forEach(([root,subs],ri)=>{
+  folders.forEach((f,ri)=>{
+    const items=groups[f.id]||[];
     const rootId='lib-root-'+ri;
-    const total=Object.values(subs).reduce((n,a)=>n+a.length,0);
-    html += '<div class="library-root-folder">'+
-      '<div class="library-folder-head" onclick="toggleLibraryFolder(\''+rootId+'\')">'+
-        '<div class="library-folder-icon">📁</div>'+
-        '<div class="library-folder-info"><div class="library-folder-name">'+escapeHtml(root)+'</div><div class="library-folder-meta">'+total+' fichier'+(total!==1?'s':'')+'</div></div>'+
-        '<div class="library-chevron" id="'+rootId+'-chev">›</div>'+
-      '</div>'+
-      '<div class="library-folder-body" id="'+rootId+'">';
-
-    Object.entries(subs).forEach(([sub,items],si)=>{
-      const subId=rootId+'-sub-'+si;
-      if(sub==='__direct__'){
-        items.forEach((m,mi)=>{
-          html += renderLibraryModel(m,root,sub,null,mi);
-        });
-      }else{
-        html += '<div class="library-subfolder">'+
-          '<div class="library-subfolder-head" onclick="toggleLibraryFolder(\''+subId+'\')">'+
-            '<div class="library-subfolder-icon">📂</div>'+
-            '<div class="library-subfolder-info"><div class="library-subfolder-name">'+escapeHtml(sub)+'</div><div class="library-subfolder-meta">'+items.length+' fichier'+(items.length!==1?'s':'')+'</div></div>'+
-            '<div class="library-chevron" id="'+subId+'-chev">›</div>'+
-          '</div>'+
-          '<div class="library-subfolder-body" id="'+subId+'">'+
-            items.map((m,mi)=>renderLibraryModel(m,root,sub,subId,mi)).join('')+
-          '</div>'+
-        '</div>';
-      }
+    const subs=f.subs||[];
+    const total=items.length;
+    html+='<div class="library-root-folder"><div class="library-folder-head" onclick="toggleLibraryFolder(\''+rootId+'\')"><div class="library-folder-icon">'+(f.icon||'📁')+'</div><div class="library-folder-info"><div class="library-folder-name">'+escapeHtml(f.name)+'</div><div class="library-folder-meta">'+total+' fichier'+(total!==1?'s':'')+'</div></div><div class="library-chevron" id="'+rootId+'-chev">›</div></div><div class="library-folder-body" id="'+rootId+'">';
+    if(!items.length){html+='<div class="library-empty">Aucun fichier validé.</div>';}
+    const bySub={__none__:[]};
+    items.forEach(m=>{const k=m.subfolderId||'__none__';bySub[k] ||= [];bySub[k].push(m);});
+    subs.forEach((sub,si)=>{
+      const arr=bySub[sub.id]||[];const subId=rootId+'-sub-'+si;
+      html+='<div class="library-subfolder"><div class="library-subfolder-head" onclick="toggleLibraryFolder(\''+subId+'\')"><div class="library-subfolder-icon">📂</div><div class="library-subfolder-info"><div class="library-subfolder-name">'+escapeHtml(sub.name)+'</div><div class="library-subfolder-meta">'+arr.length+' fichier'+(arr.length!==1?'s':'')+'</div></div><div class="library-chevron" id="'+subId+'-chev">›</div></div><div class="library-subfolder-body" id="'+subId+'">'+(arr.length?arr.map(m=>renderLibraryModel(m,f.name,sub.name,null,0)).join(''):'<div class="library-empty">Aucun fichier validé.</div>')+'</div></div>';
     });
-    html += '</div></div>';
+    const direct=bySub.__none__||[];
+    if(direct.length)html+=direct.map(m=>renderLibraryModel(m,f.name,'',null,0)).join('');
+    html+='</div></div>';
   });
   mount.innerHTML=html;
-}
-function renderLibraryModel(m,root,sub,parentId,mi){
-  const media=normalizeMachineMedia(m);
-  const label=m.systemName || m.model || 'Sans nom';
-  const detail=m.model && m.systemName ? m.model : '';
-  return '<div class="library-model" onclick="openMachineDetail(\''+m.id+'\')">'+
-    '<div class="library-model-icon">📄</div>'+
-    '<div class="library-model-info">'+
-      '<div class="library-model-name">'+escapeHtml(label)+'</div>'+
-      '<div class="library-model-meta">'+escapeHtml(detail || (m.model||''))+' · '+media.length+' média'+(media.length!==1?'s':'')+'</div>'+
-    '</div>'+
-    '<div class="library-model-arrow">›</div>'+
-  '</div>';
-}
-function toggleLibraryFolder(id){
-  const body=document.getElementById(id),chev=document.getElementById(id+'-chev');
-  if(!body)return;
-  body.classList.toggle('open');
-  if(chev)chev.classList.toggle('open');
 }
 
 function openDynamicGallery(catId) {
@@ -5508,13 +5609,14 @@ function showToast(msg, err=false) {
 // Init — load Firebase data then render
 async function initApp() {
   // Load all shared data from Firebase
-  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers(), fbLoadMachineRequests(), fbLoadApprovedMachines()]);
+  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders()]);
   renderAdminDocs();
   renderAdminStats();
   renderIaHistory();
   renderAdminCatList();
   renderUserList();
   renderMachineRequests();
+  renderAdminLibraryFolders();
   buildFichesList();
   // Listen for real-time updates
   fbListenPhotos();
