@@ -1885,6 +1885,56 @@ function userHistKey(uid) { return `vitalya_hist_${uid}`; }
 function userFavKey(uid)  { return `vitalya_fav_${uid}`; }
 
 // =====================
+// SESSION PERSISTANTE
+// =====================
+const SESSION_KEY = 'vitalya_session_v1';
+const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 jours
+
+function saveSession(user) {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      isAdmin: !!user.isAdmin,
+      createdAt: Date.now()
+    }));
+  } catch(e) {}
+}
+
+function clearSession() {
+  try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+}
+
+async function restoreSession() {
+  let session = null;
+  try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) { session = null; }
+  if (!session || !session.createdAt || (Date.now() - session.createdAt) > SESSION_DURATION) {
+    clearSession();
+    return;
+  }
+  if (session.isAdmin && session.id === 'admin') {
+    currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
+    saveSession(currentUser);
+    showScreen('adminScreen');
+    Promise.all([fbLoadPhotos(), fbLoadCats()]).then(() => {
+      renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList();
+      fbListenPhotos(); fbListenCats();
+    });
+    return;
+  }
+  await fbLoadUsers();
+  const user = getUsers().find(u => u.active && u.id === session.id && u.username.toLowerCase() === String(session.username || '').toLowerCase());
+  if (!user) { clearSession(); return; }
+  currentUser = user;
+  document.getElementById('topbarUser').textContent = '👤 ' + user.name;
+  loadUserData(user.id);
+  initTheme();
+  buildFichesList();
+  saveSession(user);
+  showScreen('techScreen');
+}
+// =====================
 // LOGIN
 // =====================
 document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPwd').focus(); });
@@ -1926,6 +1976,7 @@ async function doLogin() {
   const user = users.find(u => u.active && u.username.toLowerCase() === username && u.password === pwd);
   if (user) {
     currentUser = user;
+    saveSession(user);
     // Log connexion
     logConnection(user.id, user.name);
     showScreen('techScreen');
@@ -1975,6 +2026,7 @@ function logout() {
   }
   currentUser = null;
   chatHistory = [];
+  clearSession();
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPwd').value = '';
   document.getElementById('loginError').style.display = 'none';
@@ -3771,6 +3823,9 @@ function toggleTheme() {
 }
 
 initTheme();
+
+// Restaurer automatiquement la dernière connexion si elle est encore valide.
+window.addEventListener('load', () => { setTimeout(restoreSession, 0); });
 
 // =====================
 // TIMER TEMPS DE CONTACT
