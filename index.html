@@ -1953,9 +1953,9 @@ async function restoreSession() {
     currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
     saveSession(currentUser);
     showScreen('adminScreen');
-    Promise.all([fbLoadPhotos(), fbLoadCats()]).then(() => {
-      renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList();
-      fbListenPhotos(); fbListenCats();
+    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines()]).then(() => {
+      renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList(); renderMachineRequests();
+      fbListenPhotos(); fbListenCats(); fbListenMachineRequests(); fbListenApprovedMachines();
     });
     return;
   }
@@ -1966,6 +1966,9 @@ async function restoreSession() {
   document.getElementById('topbarUser').textContent = '👤 ' + user.name;
   loadUserData(user.id);
   initTheme();
+  await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines()]);
+  fbListenMachineRequests();
+  fbListenApprovedMachines();
   buildFichesList();
   saveSession(user);
   showScreen('techScreen');
@@ -2109,6 +2112,9 @@ async function doLogin() {
     // Load user-specific history & favs
     loadUserData(user.id);
     initTheme();
+    await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines()]);
+    fbListenMachineRequests();
+    fbListenApprovedMachines();
     buildFichesList();
     return;
   }
@@ -5182,16 +5188,19 @@ function showToast(msg, err=false) {
 // Init — load Firebase data then render
 async function initApp() {
   // Load all shared data from Firebase
-  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers()]);
+  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers(), fbLoadMachineRequests(), fbLoadApprovedMachines()]);
   renderAdminDocs();
   renderAdminStats();
   renderIaHistory();
   renderAdminCatList();
   renderUserList();
+  renderMachineRequests();
   buildFichesList();
   // Listen for real-time updates
   fbListenPhotos();
   fbListenCats();
+  fbListenMachineRequests();
+  fbListenApprovedMachines();
 }
 
 // Wait for Firebase to be ready before init
