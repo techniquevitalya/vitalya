@@ -2373,56 +2373,116 @@ function escapeHtml(value){
 function getMachineRequests(){ return _machineRequestsCache || {}; }
 function getApprovedMachines(){ return _approvedMachinesCache || {}; }
 
-async function fetchMachineRequestsRest(){
+async function firebaseRestRequest(path, options={}){
   const base=window._fbDatabaseUrl;
-  if(!base) throw new Error('Firebase URL indisponible');
-  const resp=await fetch(base+'/vitalya/machineRequests.json?ts='+Date.now(),{cache:'no-store'});
-  if(!resp.ok) throw new Error('Firebase HTTP '+resp.status);
-  const data=await resp.json();
-  _machineRequestsCache=data && typeof data==='object' ? data : {};
+  if(!base) throw new Error('URL Firebase indisponible');
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),10000);
+  try{
+    const cleanPath=String(path||'').replace(/^\\/+|\\/+$/g,'');
+    const resp=await fetch(base+'/'+cleanPath+'.json',{
+      cache:'no-store',
+      ...options,
+      signal:controller.signal
+    });
+    if(!resp.ok) throw new Error('Firebase HTTP '+resp.status);
+    return await resp.json();
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+async function fetchMachineRequestsRest(){
+  const data=await firebaseRestRequest('vitalya/machineRequests?ts='+Date.now());
+  _machineRequestsCache=data&&typeof data==='object'?data:{};
   return _machineRequestsCache;
 }
 
 async function fbLoadMachineRequests(){
+  let restError=null;
+  try{
+    return await fetchMachineRequestsRest();
+  }catch(e){
+    restError=e;
+    console.warn('Machine requests REST load failed, fallback SDK',e);
+  }
   if(!window._fbReady) return getMachineRequests();
   try{
     const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/machineRequests'));
     _machineRequestsCache=snap.exists()?(snap.val()||{}):{};
     return _machineRequestsCache;
   }catch(e){
-    console.error('Machine requests SDK load',e);
-    try{return await fetchMachineRequestsRest();}
-    catch(restErr){console.error('Machine requests REST load',restErr);return getMachineRequests();}
+    console.error('Machine requests SDK load failed',e);
+    throw new Error('Lecture Firebase impossible: '+(restError?.message||e.message||'erreur inconnue'));
   }
 }
 
 async function fbSaveMachineRequest(id,data){
-  if(!id || !window._fbReady) return false;
+  if(!id) return false;
   _machineRequestsCache=_machineRequestsCache||{};
   _machineRequestsCache[id]=data;
   try{
+    await firebaseRestRequest('vitalya/machineRequests/'+encodeURIComponent(id),{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(data)
+    });
+    return true;
+  }catch(e){
+    console.warn('Machine request REST save failed, fallback SDK',e);
+  }
+  if(!window._fbReady) return false;
+  try{
     await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests/'+id),data);
     return true;
-  }catch(e){console.error('Machine request child save',e);return false;}
+  }catch(e){
+    console.error('Machine request child save failed',e);
+    return false;
+  }
 }
 
 async function fbDeleteMachineRequest(id){
-  if(!id || !window._fbReady) return false;
+  if(!id) return false;
+  try{
+    await firebaseRestRequest('vitalya/machineRequests/'+encodeURIComponent(id),{method:'DELETE'});
+    if(_machineRequestsCache) delete _machineRequestsCache[id];
+    return true;
+  }catch(e){
+    console.warn('Machine request REST delete failed, fallback SDK',e);
+  }
+  if(!window._fbReady) return false;
   try{
     await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests/'+id),null);
     if(_machineRequestsCache) delete _machineRequestsCache[id];
     return true;
-  }catch(e){console.error('Machine request child delete',e);return false;}
+  }catch(e){
+    console.error('Machine request child delete failed',e);
+    return false;
+  }
 }
 
 async function fbSaveMachineRequests(data){
   _machineRequestsCache=data||{};
+  try{
+    await firebaseRestRequest('vitalya/machineRequests',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(_machineRequestsCache)
+    });
+    return true;
+  }catch(e){
+    console.warn('Machine requests REST root save failed, fallback SDK',e);
+  }
   if(!window._fbReady) return false;
   try{
     await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests'),_machineRequestsCache);
     return true;
-  }catch(e){console.error('Machine requests save',e);return false;}
+  }catch(e){
+    console.error('Machine requests root save failed',e);
+    return false;
+  }
 }
+
 async function fbLoadApprovedMachines(){
   if(!window._fbReady) return getApprovedMachines();
   try{
@@ -2673,11 +2733,8 @@ async function submitMachineRequest(){
     };
     const saved = await fbSaveMachineRequest(id,requests[id]);
     if(!saved) throw new Error('Firebase refus d’écriture');
-    const verify = await fbLoadMachineRequests();
-    if(!verify[id]) {
-      const restVerify = await fetchMachineRequestsRest();
-      if(!restVerify[id]) throw new Error('Demande non retrouvée après enregistrement');
-    }
+    const verify = await fetchMachineRequestsRest().catch(()=>fbLoadMachineRequests());
+    if(!verify[id]) throw new Error('Demande non retrouvée après enregistrement');
     closeModal();
     showToast('✅ Fichier envoyé — visible dans l’Admin pour validation');
   }catch(e){
@@ -2765,18 +2822,20 @@ let _adminMachinePoll = null;
 
 async function refreshAdminMachineRequests(){
   if(!currentUser?.isAdmin) return;
-  const btn = document.querySelector('#machineRequestsList')?.previousElementSibling?.querySelector('button');
-  if(btn){ btn.disabled=true; btn.textContent='⏳ Actualisation…'; }
+  const btn=document.querySelector('#machineRequestsList')?.previousElementSibling?.querySelector('button');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Actualisation…';}
   try{
-    await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines()]);
+    const data=await fbLoadMachineRequests();
+    await fbLoadApprovedMachines();
     renderMachineRequests();
+    const count=Object.keys(data||{}).length;
+    if(btn) btn.title=count+' demande'+(count!==1?'s':'')+' dans Firebase';
   }catch(e){
     console.error('Admin refresh machine requests',e);
-    // Keep whatever data was already loaded instead of blanking the Admin list.
-    try { renderMachineRequests(); } catch(renderErr) { console.error('Admin render machine requests',renderErr); }
-    showToast('❌ Impossible de charger les demandes : '+(e?.message || 'erreur inconnue'),true);
+    try{renderMachineRequests();}catch(renderErr){console.error('Admin render machine requests',renderErr);}
+    showToast('❌ Impossible de charger les demandes : '+(e?.message||'erreur inconnue'),true);
   }finally{
-    if(btn){ btn.disabled=false; btn.textContent='🔄 Actualiser'; }
+    if(btn){btn.disabled=false;btn.textContent='🔄 Actualiser';}
   }
 }
 
