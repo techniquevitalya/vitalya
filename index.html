@@ -2126,7 +2126,7 @@ function updateMachineSystemTypes(){
   }else if(folderId==='diversey'){
     options=['Poste de désinfection','QFM','DQFM','Autre'];
   }else if(folderId){
-    options=['Autre'];
+    options=['Autres'];
   }
 
   sel.innerHTML='<option value="">Choisir le système…</option>'+options.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('');
@@ -2138,7 +2138,7 @@ function updateMachineSystemTypes(){
 function toggleOtherMachineType(){
   const sel=document.getElementById('machineSystemType');
   const wrap=document.getElementById('machineOtherTypeWrap');
-  if(wrap)wrap.style.display=sel?.value==='Autre'?'block':'none';
+  if(wrap)wrap.style.display=['Autre','Autres'].includes(sel?.value)?'block':'none';
 }
 /* ==================== MACHINES — PROPOSITIONS TECHNICIENS ==================== */
 let _machineRequestsCache = {};
@@ -2296,7 +2296,7 @@ async function submitMachineRequest(){
   const folderId=document.getElementById('machineLibraryFolder')?.value||'';
   const subfolderId=document.getElementById('machineLibrarySubfolder')?.value||'';
   const typeSelect=document.getElementById('machineSystemType');
-  const systemType=typeSelect?.value==='Autre' ? (document.getElementById('machineOtherType')?.value.trim()||'') : (typeSelect?.value||'');
+  const systemType=(typeSelect?.value==='Autre'||typeSelect?.value==='Autres') ? (document.getElementById('machineOtherType')?.value.trim()||'') : (typeSelect?.value||'');
   const systemName=document.getElementById('machineSystemName')?.value.trim();
   const model=document.getElementById('machineModel')?.value.trim();
   const machineFile=document.getElementById('machinePhotoInput')?.files?.[0];
