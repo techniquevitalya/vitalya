@@ -502,6 +502,45 @@ body {
 
 /* ==================== TECH APP ==================== */
 #techScreen { background: var(--bg); }
+#techScreen{position:relative}
+.tech-global-search{
+  flex:1;min-width:120px;max-width:620px;position:relative;
+}
+.tech-global-search-inner{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;padding:8px 11px;
+}
+.tech-global-search-inner:focus-within{border-color:rgba(59,206,172,.55);box-shadow:0 0 0 2px rgba(59,206,172,.08)}
+.tech-global-search-inner span{font-size:15px;color:var(--muted);flex-shrink:0}
+#globalSearchInput{
+  width:100%;min-width:0;background:transparent;border:none;outline:none;
+  color:var(--text);font:600 13px 'Outfit',sans-serif;
+}
+#globalSearchInput::placeholder{color:var(--muted)}
+body.light-mode .tech-global-search-inner{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.12)}
+#globalSearchPanel{
+  position:absolute;z-index:500;left:10px;right:10px;top:76px;
+  display:none;flex-direction:column;max-height:62vh;overflow:hidden;
+  background:rgba(8,18,34,.98);border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.4);
+  backdrop-filter:blur(18px);
+}
+body.light-mode #globalSearchPanel{background:rgba(255,255,255,.98);border-color:rgba(0,0,0,.12)}
+.global-search-head{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);font-size:11px;color:var(--muted)}
+.global-search-results{overflow-y:auto;padding:8px}
+.global-search-result{
+  display:flex;align-items:center;gap:10px;padding:10px;border-radius:11px;
+  cursor:pointer;border:1px solid transparent;
+}
+.global-search-result:active{background:rgba(59,206,172,.08);border-color:rgba(59,206,172,.18)}
+.global-search-ico{width:32px;height:32px;border-radius:9px;background:rgba(59,206,172,.10);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+.global-search-main{min-width:0;flex:1}
+.global-search-title{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.global-search-meta{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.global-search-empty{padding:24px 14px;text-align:center;color:var(--muted);font-size:12px}
+
 
 .topbar {
   background: rgba(6,15,30,0.95);
@@ -1432,6 +1471,12 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
       <div class="topbar-logo">Vitalya</div>
       <div class="topbar-sub" id="topbarUser">Assistant Technique</div>
     </div>
+    <div class="tech-global-search">
+      <div class="tech-global-search-inner">
+        <span>🔍</span>
+        <input id="globalSearchInput" type="search" placeholder="Rechercher partout…" autocomplete="off" oninput="globalSearch(this.value)" onkeydown="if(event.key==='Escape'){clearGlobalSearch()}">
+      </div>
+    </div>
     <div class="topbar-right">
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Mode clair/sombre">🌙</button>
 
@@ -1441,6 +1486,11 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
       <div class="online-dot"></div>
       <button class="tech-logout-btn" onclick="logout()">⏻ Déconnexion</button>
     </div>
+  </div>
+
+  <div id="globalSearchPanel">
+    <div class="global-search-head" id="globalSearchHead">Recherche globale</div>
+    <div class="global-search-results" id="globalSearchResults"></div>
   </div>
 
   <div class="tab-content">
@@ -2049,7 +2099,7 @@ async function restoreSession() {
     currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
     saveSession(currentUser);
     showScreen('adminScreen');
-    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients(), fbLoadProductDosageSystems()]).then(() => {
+    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients(), fbLoadProductDosageSystems(), fbLoadMachineDosageSystems()]).then(() => {
       renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList(); renderMachineRequests(); renderAdminLibraryFolders(); renderProductDosages();
       fbListenPhotos(); fbListenCats(); fbListenMachineRequests(); fbListenApprovedMachines(); fbListenProductDosages();
     });
@@ -2062,13 +2112,15 @@ async function restoreSession() {
   document.getElementById('topbarUser').textContent = '👤 ' + user.name;
   loadUserData(user.id);
   initTheme();
-  await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients(), fbLoadProductDosageSystems()]);
+  await Promise.all([fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients(), fbLoadProductDosageSystems(), fbLoadMachineDosageSystems()]);
   fbListenMachineRequests();
   fbListenApprovedMachines();
   fbListenLibraryFolders();
   fbListenProductDosages();
   fbListenProductDosageClients();
+  fbListenMachineDosageSystems();
   fbListenProductDosageSystems();
+  fbListenMachineDosageSystems();
   buildFichesList();
   saveSession(user);
   showScreen('techScreen');
@@ -2198,47 +2250,104 @@ async function deleteLibrarySub(i,si){
   if(!confirm('Supprimer ce sous-dossier ? Les fichiers déjà validés resteront accessibles.'))return;
   folders[i].subs.splice(si,1);await fbSaveLibraryFolders(folders);renderAdminLibraryFolders();renderMachineAddFolderOptions();buildFichesList();showToast('Sous-dossier supprimé');
 }
-function renderMachineAddFolderOptions(){
+const MACHINE_DOSAGE_SYSTEMS_KEY='vitalya_machine_dosage_systems_v1';
+let _machineDosageSystemsCache={};
+function getMachineDosageSystems(){return _machineDosageSystemsCache||{};}
+async function fbLoadMachineDosageSystems(){
+  if(!window._fbReady){
+    try{_machineDosageSystemsCache=JSON.parse(localStorage.getItem(MACHINE_DOSAGE_SYSTEMS_KEY)||'{}')||{};}catch(e){_machineDosageSystemsCache={};}
+    return _machineDosageSystemsCache;
+  }
+  try{
+    const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/machineDosageSystems'));
+    _machineDosageSystemsCache=snap.exists()?(snap.val()||{}):{};
+    localStorage.setItem(MACHINE_DOSAGE_SYSTEMS_KEY,JSON.stringify(_machineDosageSystemsCache));
+  }catch(e){console.error('Machine dosage systems load',e);}
+  return _machineDosageSystemsCache;
+}
+async function fbSaveMachineDosageSystems(data){
+  _machineDosageSystemsCache=data||{};
+  localStorage.setItem(MACHINE_DOSAGE_SYSTEMS_KEY,JSON.stringify(_machineDosageSystemsCache));
+  if(!window._fbReady)return;
+  try{await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineDosageSystems'),_machineDosageSystemsCache);}
+  catch(e){console.error('Machine dosage systems save',e);}
+}
+function fbListenMachineDosageSystems(){
+  if(!window._fbReady)return;
+  try{
+    window._fbOnValue(window._fbRef(window._fbDb,'vitalya/machineDosageSystems'),snap=>{
+      _machineDosageSystemsCache=snap.exists()?(snap.val()||{}):{};
+      localStorage.setItem(MACHINE_DOSAGE_SYSTEMS_KEY,JSON.stringify(_machineDosageSystemsCache));
+      if(document.getElementById('machineSystemType')) updateMachineSystemTypes();
+    });
+  }catch(e){}
+}
+function getMachineDosageSystemOptions(folderId){
+  const base=folderId==='machines-lv'
+    ? ['Accuratic DP','Accuratic DS','Revoflow']
+    : folderId==='diversey'
+      ? ['Poste de désinfection','QFM','DQFM']
+      : [];
+  const custom=Object.values(getMachineDosageSystems()).filter(x=>x.folderId===folderId).map(x=>x.name).filter(Boolean);
+  return [...new Set(base.concat(custom))];
+}
+function handleMachineSystemChoice(select){
+  if(select?.value!=='__new_machine_system__')return;
+  const folderId=document.getElementById('machineLibraryFolder')?.value||'';
+  const subfolderId=document.getElementById('machineLibrarySubfolder')?.value||'';
+  if(!folderId){select.value='';showToast('⚠️ Choisis d’abord le dossier',true);return;}
+  showAddMachineDosageSystemModal(folderId,subfolderId);
+  select.value='';
+}
+function showAddMachineDosageSystemModal(folderId,subfolderId){
+  showModal(
+    '<div class="modal-title">⚙️ Ajouter un nouveau doseur</div>'+
+    '<div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px">Le doseur sera ajouté à la liste de ce client/dossier.</div>'+
+    '<label class="dosage-label">Nom du doseur</label>'+
+    '<input id="newMachineDosageSystemName" class="modal-input" placeholder="Ex : Nouveau doseur">'+
+    '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="saveMachineDosageSystem(\''+escapeHtml(folderId)+'\',\''+escapeHtml(subfolderId)+'\')">✅ Ajouter</button></div>'
+  );
+  setTimeout(()=>document.getElementById('newMachineDosageSystemName')?.focus(),50);
+}
+async function saveMachineDosageSystem(folderId,subfolderId){
+  const name=document.getElementById('newMachineDosageSystemName')?.value.trim()||'';
+  if(!name){showToast('⚠️ Indique le nom du doseur',true);return;}
+  if(getMachineDosageSystemOptions(folderId).some(x=>x.toLowerCase()===name.toLowerCase())){
+    showToast('⚠️ Ce doseur existe déjà pour ce client',true);return;
+  }
+  const data=getMachineDosageSystems();
+  const id='machine-system-'+Date.now();
+  data[id]={id,name,folderId,subfolderId:subfolderId||'',createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||''};
+  await fbSaveMachineDosageSystems(data);
+  closeModal();
+  showToast('✅ Doseur ajouté');
+  setTimeout(()=>showAddMachineModal(folderId,subfolderId,name),120);
+}
+
+function renderMachineAddFolderOptions(selectedFolder,selectedSubfolder,selectedSystem){
   const sel=document.getElementById('machineLibraryFolder');if(!sel)return;
   const folders=getLibraryFolders();
-  sel.innerHTML='<option value="">Choisir le dossier…</option>'+folders.map(f=>'<option value="'+escapeHtml(f.id)+'">'+escapeHtml(f.name)+'</option>').join('');
-  const sub=document.getElementById('machineLibrarySubfolder');if(sub)sub.innerHTML='<option value="">Sans sous-dossier</option>';
+  sel.innerHTML='<option value="">Choisir le dossier…</option>'+folders.map(f=>'<option value="'+escapeHtml(f.id)+'"'+(selectedFolder===f.id?' selected':'')+'>'+escapeHtml(f.name)+'</option>').join('');
+  updateMachineLibrarySubfolders(selectedSubfolder,true);
+  updateMachineSystemTypes(selectedSystem);
 }
-function updateMachineLibrarySubfolders(){
+function updateMachineLibrarySubfolders(selectedSubfolder,keepSystem){
   const folderId=document.getElementById('machineLibraryFolder')?.value;
   const sub=document.getElementById('machineLibrarySubfolder');
   if(!sub)return;
   const folder=getLibraryFolders().find(f=>f.id===folderId);
-  sub.innerHTML='<option value="">Sans sous-dossier</option>'+(folder?.subs||[]).map(x=>'<option value="'+escapeHtml(x.id)+'">'+escapeHtml(x.name)+'</option>').join('');
-  updateMachineSystemTypes();
+  sub.innerHTML='<option value="">Sans sous-dossier</option>'+(folder?.subs||[]).map(x=>'<option value="'+escapeHtml(x.id)+'"'+(selectedSubfolder===x.id?' selected':'')+'>'+escapeHtml(x.name)+'</option>').join('');
+  if(!keepSystem)updateMachineSystemTypes();
 }
-
-function updateMachineSystemTypes(){
+function updateMachineSystemTypes(selectedSystem){
   const folderId=document.getElementById('machineLibraryFolder')?.value||'';
-  const sel=document.getElementById('machineSystemType');
-  const otherWrap=document.getElementById('machineOtherTypeWrap');
-  if(!sel)return;
-
-  let options=[];
-  if(folderId==='machines-lv'){
-    options=['Accuratic DP','Accuratic DS','Revoflow'];
-  }else if(folderId==='diversey'){
-    options=['Poste de désinfection','QFM','DQFM'];
-  }else if(folderId){
-    options=[];
-  }
-
-  sel.innerHTML='<option value="">Choisir le système…</option>'+options.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('');
-  if(otherWrap) otherWrap.style.display='none';
-  const other=document.getElementById('machineOtherType');
-  if(other) other.value='';
+  const sel=document.getElementById('machineSystemType');if(!sel)return;
+  const options=getMachineDosageSystemOptions(folderId);
+  sel.innerHTML='<option value="">Choisir le système…</option>'+
+    options.map(x=>'<option value="'+escapeHtml(x)+'"'+(selectedSystem===x?' selected':'')+'>'+escapeHtml(x)+'</option>').join('')+
+    '<option value="__new_machine_system__">➕ Ajouter un nouveau doseur…</option>';
 }
-
-function toggleOtherMachineType(){
-  const sel=document.getElementById('machineSystemType');
-  const wrap=document.getElementById('machineOtherTypeWrap');
-  if(wrap)wrap.style.display='none';
-}
+function toggleOtherMachineType(){}
 /* ==================== MACHINES — PROPOSITIONS TECHNICIENS ==================== */
 let _machineRequestsCache = {};
 let _approvedMachinesCache = {};
@@ -2327,7 +2436,7 @@ function previewBranchPhotos(input){
   }
 }
 
-function showAddMachineModal(){
+function showAddMachineModal(selectedFolder,selectedSubfolder,selectedSystem){
   resetMachineDraft();
   showModal(
     '<div class="modal-title">➕ Ajouter un système de dosage</div>'+
@@ -2338,7 +2447,7 @@ function showAddMachineModal(){
     '</div>'+
     '<div class="machine-form-section">'+
       '<div class="machine-form-step"><span class="machine-step-num">2</span> Système de dosage</div>'+
-      '<select id="machineSystemType" class="machine-system-select" onchange="toggleOtherMachineType()">'+
+      '<select id="machineSystemType" class="machine-system-select" onchange="handleMachineSystemChoice(this)">'+
         '<option value="">Choisir le système…</option>'+
       '</select>'+
       '<div id="machineOtherTypeWrap" style="display:none;"><input class="modal-input" id="machineOtherType" placeholder="Nom du système"></div>'+
@@ -2365,8 +2474,7 @@ function showAddMachineModal(){
     '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="submitMachineRequest()">📨 Envoyer</button></div>'
   );
 
-  renderMachineAddFolderOptions();
-  updateMachineSystemTypes();
+  renderMachineAddFolderOptions(selectedFolder,selectedSubfolder,selectedSystem);
 }
 function previewBranchPhotos(input){
   const files=Array.from(input.files||[]);
@@ -2872,6 +2980,120 @@ function confirmDeleteUser(idx) {
 
 
 // =====================
+// =====================
+// RECHERCHE GLOBALE
+// =====================
+let _globalSearchResults=[];
+function normalizeSearchValue(v){
+  return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+}
+function globalSearch(q){
+  const panel=document.getElementById('globalSearchPanel');
+  const input=document.getElementById('globalSearchInput');
+  const head=document.getElementById('globalSearchHead');
+  const results=document.getElementById('globalSearchResults');
+  if(!panel||!input||!head||!results)return;
+  const query=normalizeSearchValue(q);
+  if(!query){
+    _globalSearchResults=[];
+    panel.style.display='none';
+    return;
+  }
+  panel.style.display='flex';
+  const terms=query.split(/\s+/).filter(Boolean);
+  const items=buildGlobalSearchIndex();
+  const scored=items.map(item=>{
+    const hay=normalizeSearchValue([item.title,item.meta,item.keywords].join(' '));
+    let score=0;
+    terms.forEach(t=>{
+      if(hay===t)score+=100;
+      else if(normalizeSearchValue(item.title).startsWith(t))score+=45;
+      else if(normalizeSearchValue(item.title).includes(t))score+=30;
+      else if(hay.includes(t))score+=12;
+      else score-=20;
+    });
+    return {...item,score};
+  }).filter(x=>x.score>=terms.length*10).sort((a,b)=>b.score-a.score).slice(0,30);
+  _globalSearchResults=scored;
+  head.textContent=scored.length?scored.length+' résultat'+(scored.length>1?'s':''):'Recherche globale';
+  if(!scored.length){
+    results.innerHTML='<div class="global-search-empty">Aucun résultat pour « '+escapeHtml(q)+' »</div>';
+    return;
+  }
+  results.innerHTML=scored.map((item,i)=>
+    '<div class="global-search-result" onclick="pickGlobalSearchResult('+i+')">'+
+      '<div class="global-search-ico">'+escapeHtml(item.icon||'🔎')+'</div>'+
+      '<div class="global-search-main"><div class="global-search-title">'+escapeHtml(item.title)+'</div><div class="global-search-meta">'+escapeHtml(item.meta||'')+'</div></div>'+
+    '</div>'
+  ).join('');
+}
+function buildGlobalSearchIndex(){
+  const items=[];
+  const folders=getLibraryFolders();
+  folders.forEach(f=>{
+    items.push({icon:f.icon||'📁',title:f.name,meta:'Dossier',keywords:f.name,action:()=>switchTab('fiches')});
+    (f.subs||[]).forEach(s=>items.push({icon:'📂',title:s.name,meta:f.name+' · Sous-dossier',keywords:f.name+' '+s.name,action:()=>switchTab('fiches')}));
+  });
+  Object.values(getApprovedMachines()).filter(m=>m.status==='approved').forEach(m=>{
+    const folder=folders.find(f=>f.id===m.folderId);
+    items.push({
+      icon:'⚙️',title:m.systemName||m.model||'Système de dosage',
+      meta:[folder?.name,m.systemType,m.model].filter(Boolean).join(' · '),
+      keywords:[m.systemName,m.model,m.systemType,folder?.name].filter(Boolean).join(' '),
+      action:()=>{switchTab('fiches');openMachineDetail(m.id);}
+    });
+  });
+  const dosageFoldersMap={};
+  dosageFolders().forEach(f=>dosageFoldersMap[f.id]=f.name);
+  Object.values(getProductDosages()).forEach(d=>{
+    items.push({
+      icon:'💧',title:d.productName||'Produit',
+      meta:[dosageFoldersMap[d.folderId],d.doseur,d.dosageType==='free'?d.dosageValue:(d.dosageType==='nozzle'?'Buse '+d.dosageValue:(d.dosageValue+' g'))].filter(Boolean).join(' · '),
+      keywords:[d.productName,d.doseur,d.dosageValue,dosageFoldersMap[d.folderId]].filter(Boolean).join(' '),
+      action:()=>{switchTab('dosages');setTimeout(()=>scrollToDosageItem(d.id),60);}
+    });
+  });
+  if(typeof FICHES!=='undefined')Object.entries(FICHES).forEach(([id,f])=>{
+    items.push({icon:'📄',title:f.title||id,meta:f.subtitle||'Fiche technique',keywords:[f.title,f.subtitle,f.html].filter(Boolean).join(' '),action:()=>{switchTab('fiches');setTimeout(()=>openFiche(id),60);}});
+  });
+  getDocs().forEach(d=>items.push({icon:'📄',title:d.name||'Document',meta:'Document',keywords:[d.name,d.ext].filter(Boolean).join(' '),action:()=>switchTab('fiches')}));
+  Object.entries(getCats()).forEach(([k,cat])=>{
+    if(cat&&cat.name)items.push({icon:cat.icon||'📁',title:cat.name,meta:'Photos · catégorie',keywords:cat.name,action:()=>{switchTab('fiches');setTimeout(()=>openDynamicGallery(k),60);}});
+    (cat?.subs||[]).forEach(s=>items.push({icon:s.icon||'📂',title:s.name,meta:cat.name+' · Photos',keywords:[cat.name,s.name].join(' '),action:()=>{switchTab('fiches');}});
+  });
+  try{
+    const prodSelect=document.getElementById('calcProduit');
+    if(prodSelect)prodSelect.querySelectorAll('option[value]').forEach(o=>items.push({icon:'🧴',title:o.textContent.trim(),meta:'Produit / calculateur',keywords:o.textContent.trim(),action:()=>switchTab('fiches')}));
+  }catch(e){}
+  try{
+    getExtra().slice(0,120).forEach((x,i)=>items.push({icon:'🤖',title:'Base IA · '+(String(x).match(/^===\s*(.*?)\s*===/)?.[1]||'Information'),meta:'Connaissances IA',keywords:String(x).slice(0,3000),action:()=>switchTab('chat')}));
+  }catch(e){}
+  return items;
+}
+function scrollToDosageItem(id){
+  const el=document.getElementById('dosage-item-'+CSS.escape(String(id)));
+  if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function pickGlobalSearchResult(i){
+  const item=_globalSearchResults[i];
+  clearGlobalSearch();
+  if(item?.action)try{item.action();}catch(e){console.error('Global search action',e);}
+}
+function clearGlobalSearch(){
+  const input=document.getElementById('globalSearchInput');
+  const panel=document.getElementById('globalSearchPanel');
+  const results=document.getElementById('globalSearchResults');
+  if(input)input.value='';
+  if(panel)panel.style.display='none';
+  if(results)results.innerHTML='';
+  _globalSearchResults=[];
+}
+document.addEventListener('click',e=>{
+  const panel=document.getElementById('globalSearchPanel');
+  const wrap=document.querySelector('.tech-global-search');
+  if(panel&&wrap&&!wrap.contains(e.target))panel.style.display='none';
+});
+
 // TAB NAVIGATION
 // =====================
 function switchTab(tab) {
@@ -5888,7 +6110,7 @@ function renderProductDosages(){
       '<div class="dosage-client-head"><div class="dosage-client-icon">'+escapeHtml(f.icon)+'</div><div class="dosage-client-name">'+escapeHtml(f.name)+'</div><div class="dosage-client-count">'+rows.length+' dosage'+(rows.length!==1?'s':'')+'</div></div>'+
       '<div class="dosage-list">'+(rows.length?rows.map(x=>{
         const dosage=x.dosageType==='free'?x.dosageValue:(x.dosageType==='nozzle'?'Buse '+x.dosageValue:x.dosageValue+' g');
-        return '<div class="dosage-row"><div class="dosage-product"><div class="dosage-product-name">'+escapeHtml(x.productName)+'</div><div class="dosage-product-meta">'+(x.doseur?'Doseur : '+escapeHtml(x.doseur):'Doseur non renseigné')+'</div></div><div class="dosage-badge">'+escapeHtml(dosage)+'</div></div>';
+        return '<div class="dosage-row" id="dosage-item-'+escapeHtml(x.id)+'"><div class="dosage-product"><div class="dosage-product-name">'+escapeHtml(x.productName)+'</div><div class="dosage-product-meta">'+(x.doseur?'Doseur : '+escapeHtml(x.doseur):'Doseur non renseigné')+'</div></div><div class="dosage-badge">'+escapeHtml(dosage)+'</div></div>';
       }).join(''):'<div class="dosage-empty">Aucun produit renseigné pour le moment.</div>')+'</div></div>';
   }).join('');
 }
@@ -6066,7 +6288,7 @@ async function saveProductDosage(){
 // Init — load Firebase data then render
 async function initApp() {
   // Load all shared data from Firebase
-  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients(), fbLoadProductDosageSystems()]);
+  await Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadUsers(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients(), fbLoadProductDosageSystems(), fbLoadMachineDosageSystems()]);
   renderAdminDocs();
   renderAdminStats();
   renderIaHistory();
