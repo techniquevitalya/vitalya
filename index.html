@@ -2736,10 +2736,11 @@ function renderMachineRequests(){
 
     const media=r.branchMedia||r.branchPhotos||[];
     const mainUrl=r.machinePhoto?.url||r.machinePhotoUrl||r.photoUrl||'';
+    const safeId = escapeHtml(r.id || '');
     const actions = status==='pending'
       ? '<div class="machine-request-actions">'+
-          '<button class="machine-approve" onclick="approveMachineRequest(\\\''+escapeHtml(r.id)+'\\\')">✅ Valider</button>'+
-          '<button class="machine-reject" onclick="rejectMachineRequest(\\\''+escapeHtml(r.id)+'\\\')">❌ Refuser</button>'+
+          '<button class="machine-approve" type="button" onclick="approveMachineRequest(\''+safeId+'\')">✅ Valider</button>'+
+          '<button class="machine-reject" type="button" onclick="rejectMachineRequest(\''+safeId+'\')">❌ Refuser</button>'+
         '</div>'
       : (status==='rejected'
           ? '<div class="machine-mini-note" style="margin-top:10px;color:#FF6B75">Cette proposition a été refusée.</div>'
