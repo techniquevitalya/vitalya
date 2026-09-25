@@ -1436,7 +1436,6 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
   window._fbSet = set;
   window._fbGet = get;
   window._fbOnValue = onValue;
-  window._fbDatabaseUrl = firebaseConfig.databaseURL;
   window._fbReady = true;
 
   // Notify app that Firebase is ready
@@ -1831,10 +1830,7 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
         Les techniciens peuvent proposer une machine avec sa photo et ses branchements. Rien n'est publié dans les Fiches avant votre validation.
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-  <button type="button" onclick="refreshAdminMachineRequests()" style="flex:1;background:rgba(59,206,172,.1);border:1px solid rgba(59,206,172,.25);border-radius:10px;padding:10px;font-size:12px;font-weight:800;color:var(--cyan);font-family:'Outfit',sans-serif;cursor:pointer;">🔄 Actualiser</button>
-</div>
-<div id="machineRequestsList"><div class="machine-mini-note">Aucune demande en attente.</div></div>
+      <div id="machineRequestsList"><div class="machine-mini-note">Aucune demande en attente.</div></div>
     </div>
 
     <!-- GESTION DE LA BIBLIOTHÈQUE -->
@@ -2112,8 +2108,7 @@ async function restoreSession() {
     showScreen('adminScreen');
     Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines(), fbLoadLibraryFolders(), fbLoadProductDosages(), fbLoadProductDosageClients(), fbLoadProductDosageSystems(), fbLoadMachineDosageSystems()]).then(() => {
       renderAdminDocs(); renderAdminCatList(); renderAdminStats(); renderIaHistory(); renderUserList(); renderMachineRequests(); renderAdminLibraryFolders(); renderProductDosages();
-      fbListenPhotos(); fbListenCats(); fbListenMachineRequests(); fbListenApprovedMachines(); fbListenProductDosageSystems(); fbListenMachineDosageSystems();
-      startAdminMachinePolling();
+      fbListenPhotos(); fbListenCats(); fbListenMachineRequests(); fbListenApprovedMachines(); fbListenProductDosages();
     });
     return;
   }
@@ -2373,116 +2368,25 @@ function escapeHtml(value){
 function getMachineRequests(){ return _machineRequestsCache || {}; }
 function getApprovedMachines(){ return _approvedMachinesCache || {}; }
 
-async function firebaseRestRequest(path, options={}){
-  const base=window._fbDatabaseUrl;
-  if(!base) throw new Error('URL Firebase indisponible');
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),10000);
-  try{
-    const cleanPath=String(path||'');
-    const resp=await fetch(base+'/'+cleanPath+'.json',{
-      cache:'no-store',
-      ...options,
-      signal:controller.signal
-    });
-    if(!resp.ok) throw new Error('Firebase HTTP '+resp.status);
-    return await resp.json();
-  }finally{
-    clearTimeout(timer);
-  }
-}
-
-async function fetchMachineRequestsRest(){
-  const data=await firebaseRestRequest('vitalya/machineRequests?ts='+Date.now());
-  _machineRequestsCache=data&&typeof data==='object'?data:{};
-  return _machineRequestsCache;
-}
-
 async function fbLoadMachineRequests(){
-  let restError=null;
-  try{
-    return await fetchMachineRequestsRest();
-  }catch(e){
-    restError=e;
-    console.warn('Machine requests REST load failed, fallback SDK',e);
-  }
   if(!window._fbReady) return getMachineRequests();
   try{
-    const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/machineRequests'));
-    _machineRequestsCache=snap.exists()?(snap.val()||{}):{};
-    return _machineRequestsCache;
-  }catch(e){
-    console.error('Machine requests SDK load failed',e);
-    throw new Error('Lecture Firebase impossible: '+(restError?.message||e.message||'erreur inconnue'));
-  }
+    const snap = await window._fbGet(window._fbRef(window._fbDb,'vitalya/machineRequests'));
+    _machineRequestsCache = snap.exists() ? (snap.val() || {}) : {};
+  }catch(e){ console.error('Machine requests load',e); }
+  return _machineRequestsCache;
 }
-
-async function fbSaveMachineRequest(id,data){
-  if(!id) return false;
-  _machineRequestsCache=_machineRequestsCache||{};
-  _machineRequestsCache[id]=data;
-  try{
-    await firebaseRestRequest('vitalya/machineRequests/'+encodeURIComponent(id),{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(data)
-    });
-    return true;
-  }catch(e){
-    console.warn('Machine request REST save failed, fallback SDK',e);
-  }
-  if(!window._fbReady) return false;
-  try{
-    await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests/'+id),data);
-    return true;
-  }catch(e){
-    console.error('Machine request child save failed',e);
-    return false;
-  }
-}
-
-async function fbDeleteMachineRequest(id){
-  if(!id) return false;
-  try{
-    await firebaseRestRequest('vitalya/machineRequests/'+encodeURIComponent(id),{method:'DELETE'});
-    if(_machineRequestsCache) delete _machineRequestsCache[id];
-    return true;
-  }catch(e){
-    console.warn('Machine request REST delete failed, fallback SDK',e);
-  }
-  if(!window._fbReady) return false;
-  try{
-    await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests/'+id),null);
-    if(_machineRequestsCache) delete _machineRequestsCache[id];
-    return true;
-  }catch(e){
-    console.error('Machine request child delete failed',e);
-    return false;
-  }
-}
-
 async function fbSaveMachineRequests(data){
-  _machineRequestsCache=data||{};
-  try{
-    await firebaseRestRequest('vitalya/machineRequests',{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(_machineRequestsCache)
-    });
-    return true;
-  }catch(e){
-    console.warn('Machine requests REST root save failed, fallback SDK',e);
-  }
+  _machineRequestsCache = data || {};
   if(!window._fbReady) return false;
   try{
     await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests'),_machineRequestsCache);
     return true;
   }catch(e){
-    console.error('Machine requests root save failed',e);
+    console.error('Machine requests save',e);
     return false;
   }
 }
-
 async function fbLoadApprovedMachines(){
   if(!window._fbReady) return getApprovedMachines();
   try{
@@ -2505,7 +2409,7 @@ function fbListenMachineRequests(){
       renderMachineRequests();
       renderMyMachineRequestList();
     });
-  }catch(e){ console.error('Machine requests listener',e); }
+  }catch(e){}
 }
 function fbListenApprovedMachines(){
   if(!window._fbReady) return;
@@ -2731,10 +2635,14 @@ async function submitMachineRequest(){
       id,folderId,subfolderId,systemType,systemName,model,machinePhoto,branchMedia,
       createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||'',status:'pending'
     };
-    const saved = await fbSaveMachineRequest(id,requests[id]);
-    if(!saved) throw new Error('Firebase refus d’écriture');
-    const verify = await fetchMachineRequestsRest().catch(()=>fbLoadMachineRequests());
-    if(!verify[id]) throw new Error('Demande non retrouvée après enregistrement');
+    const saved = await fbSaveMachineRequests(requests);
+    if(!saved){
+      throw new Error('Firebase refus d’écriture');
+    }
+    const verify = await fbLoadMachineRequests();
+    if(!verify[id]){
+      throw new Error('Demande non retrouvée après enregistrement');
+    }
     closeModal();
     showToast('✅ Fichier envoyé — visible dans l’Admin pour validation');
   }catch(e){
@@ -2802,14 +2710,8 @@ function openAdminMachineMedia(el){
   if(!el) return;
   openLightbox(el.dataset.url || '', el.dataset.caption || 'Photo', el.dataset.video === 'true');
 }
-function normalizeMediaList(media){
-  if(Array.isArray(media)) return media;
-  if(media && typeof media==='object') return Object.values(media);
-  if(typeof media==='string' && media) return [media];
-  return [];
-}
 function renderAdminMachineMedia(media){
-  return normalizeMediaList(media).map(x=>{
+  return (media||[]).map(x=>{
     const item=typeof x==='string' ? {url:x,type:mediaKind(x)} : x;
     if(!item?.url) return '';
     if(item.type==='video'){
@@ -2818,47 +2720,6 @@ function renderAdminMachineMedia(media){
     return '<div class="machine-admin-media-click" data-url="'+escapeHtml(item.url)+'" data-caption="'+escapeHtml(item.name||'Photo')+'" onclick="openAdminMachineMedia(this)"><img src="'+escapeHtml(item.url)+'" alt="" loading="lazy"></div>';
   }).join('');
 }
-let _adminMachinePoll = null;
-
-async function refreshAdminMachineRequests(){
-  if(!currentUser?.isAdmin) return;
-  const btn=document.querySelector('#machineRequestsList')?.previousElementSibling?.querySelector('button');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Actualisation…';}
-  try{
-    const data=await fbLoadMachineRequests();
-    await fbLoadApprovedMachines();
-    renderMachineRequests();
-    const count=Object.keys(data||{}).length;
-    if(btn) btn.title=count+' demande'+(count!==1?'s':'')+' dans Firebase';
-  }catch(e){
-    console.error('Admin refresh machine requests',e);
-    try{renderMachineRequests();}catch(renderErr){console.error('Admin render machine requests',renderErr);}
-    showToast('❌ Impossible de charger les demandes : '+(e?.message||'erreur inconnue'),true);
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent='🔄 Actualiser';}
-  }
-}
-
-window._machineRequestsFirebaseHook = true;
-window.addEventListener('firebase-ready',()=>{
-  if(currentUser?.isAdmin){
-    fbLoadMachineRequests().then(()=>renderMachineRequests()).catch(()=>{});
-    startAdminMachinePolling();
-  }
-});
-
-function startAdminMachinePolling(){
-  if(_adminMachinePoll) clearInterval(_adminMachinePoll);
-  refreshAdminMachineRequests();
-  _adminMachinePoll = setInterval(() => {
-    if(currentUser?.isAdmin) refreshAdminMachineRequests();
-  }, 5000);
-}
-
-function stopAdminMachinePolling(){
-  if(_adminMachinePoll){ clearInterval(_adminMachinePoll); _adminMachinePoll=null; }
-}
-
 function renderMachineRequests(){
   const el=document.getElementById('machineRequestsList');if(!el)return;
 
@@ -2885,7 +2746,7 @@ function renderMachineRequests(){
       status==='rejected' ? '<span class="machine-status-badge machine-status-rejected">❌ Refusée</span>' :
       '<span class="machine-status-badge machine-status-pending">⏳ À valider</span>';
 
-    const media=normalizeMediaList(r.branchMedia||r.branchPhotos||[]);
+    const media=r.branchMedia||r.branchPhotos||[];
     const mainUrl=r.machinePhoto?.url||r.machinePhotoUrl||r.photoUrl||'';
     const safeId = escapeHtml(r.id || '');
     const actions = status==='pending'
@@ -2921,64 +2782,88 @@ function renderMachineRequests(){
 }
 
 async function approveMachineRequest(id){
-  const requests=await fbLoadMachineRequests();
-  const request=requests[id];
-  if(!request){showToast('⚠️ Demande introuvable',true);return;}
+  const requests = await fbLoadMachineRequests();
+  const request = requests[id];
+  if(!request){ showToast('⚠️ Demande introuvable',true); return; }
 
-  const machines=await fbLoadApprovedMachines();
-  machines[id]={...request,status:'approved',approvedAt:Date.now(),approvedBy:currentUser?.id||'admin'};
+  const machines = await fbLoadApprovedMachines();
+  machines[id] = {
+    ...request,
+    status:'approved',
+    approvedAt:Date.now(),
+    approvedBy:currentUser?.id || 'admin'
+  };
+  delete requests[id];
+
   await fbSaveApprovedMachines(machines);
-
-  const deleted=await fbDeleteMachineRequest(id);
-  await fbLoadMachineRequests();
+  await fbSaveMachineRequests(requests);
   renderMachineRequests();
   buildFichesList();
   renderMyMachineRequestList();
-
-  if(!deleted) showToast('⚠️ Machine validée, mais la demande n’a pas pu être retirée',true);
-  else showToast('✅ Machine validée et publiée');
+  showToast('✅ Machine validée et publiée');
 }
 
 async function rejectMachineRequest(id){
-  const requests=await fbLoadMachineRequests();
-  const request=requests[id];
-  if(!request){showToast('⚠️ Demande introuvable',true);return;}
-  if(request.status==='rejected'){showToast('ℹ️ Cette proposition est déjà refusée');return;}
+  const requests = await fbLoadMachineRequests();
+  const request = requests[id];
+  if(!request){
+    showToast('⚠️ Demande introuvable',true);
+    return;
+  }
+  if(request.status==='rejected'){
+    showToast('ℹ️ Cette proposition est déjà refusée');
+    return;
+  }
 
-  const updated={...request,status:'rejected',rejectedAt:Date.now(),rejectedBy:currentUser?.id||'admin'};
-  _machineRequestsCache[id]=updated;
+  requests[id] = {
+    ...request,
+    status:'rejected',
+    rejectedAt:Date.now(),
+    rejectedBy:currentUser?.id || 'admin'
+  };
+
+  _machineRequestsCache = requests;
   renderMachineRequests();
   renderMyMachineRequestList();
 
-  const saved=await fbSaveMachineRequest(id,updated);
+  const saved = await fbSaveMachineRequests(requests);
   if(!saved){
-    await fbLoadMachineRequests();
+    _machineRequestsCache = await fbLoadMachineRequests();
     renderMachineRequests();
     renderMyMachineRequestList();
-    showToast('❌ Le refus n’a pas pu être enregistré',true);
+    showToast('❌ Le refus n’a pas pu être enregistré dans Firebase',true);
     return;
   }
+
   showToast('❌ Proposition refusée');
 }
 
+
 async function deleteRejectedMachineRequest(id){
-  const requests=await fbLoadMachineRequests();
-  const request=requests[id];
-  if(!request){showToast('⚠️ Proposition introuvable',true);return;}
-  if((request.status||'pending')!=='rejected'){
-    showToast('⚠️ Seules les propositions refusées peuvent être supprimées',true);
+  const requests = await fbLoadMachineRequests();
+  const request = requests[id];
+  if(!request){
+    showToast('⚠️ Proposition introuvable',true);
     return;
   }
+  if((request.status||'pending')!=='rejected'){
+    showToast('⚠️ Seules les propositions refusées peuvent être supprimées ici',true);
+    return;
+  }
+
   if(!confirm('Supprimer cette proposition refusée de l’historique ?')) return;
 
-  const deleted=await fbDeleteMachineRequest(id);
-  if(!deleted){
-    await fbLoadMachineRequests();
+  delete requests[id];
+  _machineRequestsCache = requests;
+
+  const saved = await fbSaveMachineRequests(requests);
+  if(!saved){
+    _machineRequestsCache = await fbLoadMachineRequests();
     renderMachineRequests();
     showToast('❌ Suppression impossible',true);
     return;
   }
-  await fbLoadMachineRequests();
+
   renderMachineRequests();
   showToast('🗑 Proposition supprimée');
 }
@@ -3046,7 +2931,7 @@ async function doLogin() {
   if ((username === 'admin' || username === '') && pwd === ADMIN_PWD) {
     currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
     showScreen('adminScreen');
-    Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines()]).then(() => {
+    Promise.all([fbLoadPhotos(), fbLoadCats()]).then(() => {
       renderAdminDocs();
       renderAdminCatList();
       renderAdminStats();
@@ -3055,9 +2940,10 @@ async function doLogin() {
       renderMachineRequests();
       fbListenPhotos();
       fbListenCats();
+      fbLoadMachineRequests().then(renderMachineRequests);
+      fbLoadApprovedMachines();
       fbListenMachineRequests();
       fbListenApprovedMachines();
-      startAdminMachinePolling();
     });
     return;
   }
@@ -3115,7 +3001,6 @@ function showScreen(id) {
 }
 
 function logout() {
-  stopAdminMachinePolling();
   // Save chat history for current user before logout
   if (currentUser && !currentUser.isAdmin) {
     localStorage.setItem(userHistKey(currentUser.id) + '_chat', JSON.stringify(chatHistory));
@@ -5762,7 +5647,7 @@ function normalizeMachineMedia(m){
   const out=[];
   const primary=m.machinePhoto || (m.machinePhotoUrl ? {url:m.machinePhotoUrl,type:'image'} : (m.photoUrl ? {url:m.photoUrl,type:'image'} : null));
   if(primary?.url) out.push({...primary,type:mediaKind(primary.url,primary.type),primary:true});
-  const src=normalizeMediaList(m.branchMedia || m.branchPhotos || []);
+  const src=m.branchMedia || m.branchPhotos || [];
   for(const item of src){
     const x=typeof item==='string' ? {url:item,type:mediaKind(item)} : item;
     if(x?.url) out.push({...x,type:mediaKind(x.url,x.type),primary:false});
