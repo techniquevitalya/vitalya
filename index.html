@@ -2954,8 +2954,9 @@ async function doLogin() {
   if (user) {
     currentUser = user;
     saveSession(user);
-    // Log connexion
-    logConnection(user.id, user.name);
+    // Log connexion : attendre la confirmation Firebase.
+    const connectionSaved = await logConnection(user.id, user.name);
+    if (!connectionSaved) console.warn('Connexion non enregistrée dans Firebase');
     showScreen('techScreen');
     switchTab('fiches');
     // Update topbar with user name
@@ -3021,13 +3022,28 @@ function logout() {
 const CONN_LOG_KEY = 'vitalya_conn_log';
 
 async function logConnection(userId, userName) {
-  const log = { userId, userName, date: new Date().toLocaleDateString('fr-FR'), time: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}), ts: Date.now() };
-  // Save to Firebase
-  if (window._fbReady) {
-    try {
-      const r = window._fbRef(window._fbDb, `vitalya/connections/${Date.now()}`);
-      await window._fbSet(r, log);
-    } catch(e) {}
+  const now = Date.now();
+  const log = {
+    userId: userId || '',
+    userName: userName || 'Technicien',
+    date: new Date(now).toLocaleDateString('fr-FR'),
+    time: new Date(now).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}),
+    ts: now
+  };
+  if (!window._fbReady) return false;
+  try {
+    const key = String(now) + '_' + String(userId || 'user').replace(/[^a-zA-Z0-9_-]/g,'_');
+    const ref = window._fbRef(window._fbDb, 'vitalya/connections/' + key);
+    await window._fbSet(ref, log);
+    const verify = await window._fbGet(ref);
+    if (!verify.exists()) {
+      console.error('Connexion non vérifiée dans Firebase');
+      return false;
+    }
+    return true;
+  } catch(e) {
+    console.error('Enregistrement connexion Firebase', e);
+    return false;
   }
 }
 
@@ -3039,7 +3055,10 @@ async function loadConnectionStats() {
     const r = window._fbRef(window._fbDb, 'vitalya/connections');
     const snap = await window._fbGet(r);
     if (!snap.exists()) { el.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:16px;">Aucune connexion enregistrée</div>'; return; }
-    const logs = Object.values(snap.val()).sort((a,b) => b.ts - a.ts).slice(0, 30);
+    const logs = Object.values(snap.val())
+      .filter(l => l && l.ts)
+      .sort((a,b) => Number(b.ts || 0) - Number(a.ts || 0))
+      .slice(0, 50);
     // Group by user
     const byUser = {};
     logs.forEach(l => {
