@@ -522,6 +522,58 @@ body {
 .tab-content { flex: 1; overflow: hidden; position: relative; }
 .tab-page { display: none; height: 100%; flex-direction: column; overflow: hidden; }
 .tab-page.active { display: flex; }
+
+/* ==================== NOUVEL ACCUEIL FICHES ==================== */
+.fiches-home-hero{
+  margin:0 0 14px;
+  padding:18px;
+  border-radius:20px;
+  background:linear-gradient(145deg,rgba(59,206,172,.16),rgba(10,36,99,.34));
+  border:1px solid rgba(59,206,172,.25);
+  box-shadow:0 10px 30px rgba(0,0,0,.12);
+}
+.fiches-home-kicker{font-size:10px;font-weight:800;letter-spacing:1.7px;color:var(--cyan);margin-bottom:6px}
+.fiches-home-title{font-size:24px;font-weight:900;letter-spacing:-.5px}
+.fiches-home-sub{font-size:12px;line-height:1.55;color:var(--muted);margin-top:6px;max-width:520px}
+.fiches-add-machine{
+  width:100%;margin-top:14px;border:none;border-radius:13px;padding:13px;
+  background:linear-gradient(135deg,var(--cyan),#2BA893);color:var(--primary);
+  font:800 14px 'Outfit',sans-serif;cursor:pointer
+}
+.fiches-my-requests{
+  width:100%;margin-top:8px;border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:11px;
+  background:rgba(255,255,255,.05);color:var(--text);
+  font:700 13px 'Outfit',sans-serif;cursor:pointer
+}
+.fiches-machine-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:4px}
+.fiches-system-chip{
+  display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:18px;
+  background:rgba(59,206,172,.1);border:1px solid rgba(59,206,172,.24);color:var(--cyan);
+  font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px
+}
+.fiches-machine-card{
+  display:flex;gap:11px;align-items:center;padding:11px;border-radius:16px;
+  background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);
+  cursor:pointer
+}
+.fiches-machine-photo{
+  width:72px;height:72px;border-radius:14px;object-fit:cover;flex-shrink:0;background:rgba(255,255,255,.06)
+}
+.fiches-machine-info{flex:1;min-width:0}
+.fiches-machine-name{font-size:15px;font-weight:850;margin-top:5px}
+.fiches-machine-meta{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}
+.fiches-machine-arrow{color:var(--muted);font-size:20px}
+.machine-branch-gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:10px}
+.machine-branch-gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.08);cursor:pointer}
+.machine-request-photo-list{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.machine-request-photo-list img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px}
+.machine-form-note{font-size:11px;color:var(--muted);line-height:1.5}
+.machine-file-count{font-size:11px;font-weight:800;color:var(--cyan);margin-top:7px}
+.machine-system-select{
+  width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);
+  border-radius:12px;padding:13px 14px;color:var(--text);font:600 14px 'Outfit',sans-serif;outline:none;margin-bottom:12px
+}
+.machine-system-select:focus{border-color:var(--cyan)}
 /* ==================== MACHINES AJOUTÉES / VALIDATION ==================== */
 .machine-add-btn{width:34px;height:34px;border:none;border-radius:10px;background:rgba(59,206,172,.14);border:1px solid rgba(59,206,172,.28);color:var(--cyan);font-size:17px;cursor:pointer;flex-shrink:0}
 .machine-add-btn:active{transform:scale(.92)}
@@ -1258,7 +1310,7 @@ body {
   <div class="tab-content">
 
     <!-- CHAT TAB -->
-    <div class="tab-page active" id="chatPage">
+    <div class="tab-page" id="chatPage">
       <div class="quick-scroll">
         <button class="qchip" onclick="quickQ('Dosage Suma Bac D10 désinfection manuelle ?')">🦠 Suma Bac D10</button>
         <button class="qchip" onclick="quickQ('Suma Chlor D4.4 légumes dosage ?')">🥦 Chlor D4.4</button>
@@ -1316,13 +1368,24 @@ body {
     </div>
 
     <!-- FICHES TAB -->
-    <div class="tab-page" id="fichesPage">
+    <div class="tab-page active" id="fichesPage">
       <!-- LIST VIEW -->
       <div id="fichesList" class="fiches-list-scroll">
 
         <div class="cats-inner">
 
-          <div class="section-title">🔧 Installations</div>
+          <div class="fiches-home-hero">
+            <div class="fiches-home-kicker">VITALYA · FICHES TERRAIN</div>
+            <div class="fiches-home-title">Machines & branchements</div>
+            <div class="fiches-home-sub">Retrouve les installations validées, leurs photos machine et tous leurs branchements.</div>
+            <button class="fiches-add-machine" onclick="showAddMachineModal()">➕ Ajouter une machine</button>
+            <button class="fiches-my-requests" onclick="showMyMachineRequests()">📨 Mes demandes</button>
+          </div>
+
+          <div class="section-title">🛠️ Machines validées</div>
+          <div id="approvedMachinesHome"></div>
+
+          <div class="section-title">📚 Fiches techniques</div>
 
           <div class="cat-card" onclick="openFiche('lv-branchement')">
             <div class="cat-icon blue">🔧</div>
@@ -1646,12 +1709,12 @@ body {
 
   <!-- Tab bar — 4 onglets -->
   <div class="tabbar">
-    <div class="tab active" id="tab-chat" onclick="switchTab('chat')">
+    <div class="tab" id="tab-chat" onclick="switchTab('chat')">
       <div class="tab-indicator"></div>
       <div class="tab-icon">💬</div>
       <div class="tab-label">Chat</div>
     </div>
-    <div class="tab" id="tab-fiches" onclick="switchTab('fiches')">
+    <div class="tab active" id="tab-fiches" onclick="switchTab('fiches')">
       <div class="tab-indicator"></div>
       <div class="tab-icon">📋</div>
       <div class="tab-label">Fiches</div>
@@ -1972,90 +2035,369 @@ async function restoreSession() {
   buildFichesList();
   saveSession(user);
   showScreen('techScreen');
+  switchTab('fiches');
 }
 /* ==================== MACHINES — PROPOSITIONS TECHNICIENS ==================== */
 let _machineRequestsCache = {};
 let _approvedMachinesCache = {};
-let _machineBranchDraft = [];
+let _machineDraft = { branchFiles: [] };
 
-function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
-function getMachineRequests(){return _machineRequestsCache||{};}
-function getApprovedMachines(){return _approvedMachinesCache||{};}
+function escapeHtml(value){
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[ch]));
+}
+function getMachineRequests(){ return _machineRequestsCache || {}; }
+function getApprovedMachines(){ return _approvedMachinesCache || {}; }
 
 async function fbLoadMachineRequests(){
-  if(!window._fbReady)return getMachineRequests();
-  try{const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/machineRequests'));_machineRequestsCache=snap.exists()?(snap.val()||{}):{};return _machineRequestsCache;}
-  catch(e){console.error('Machine requests load',e);return getMachineRequests();}
+  if(!window._fbReady) return getMachineRequests();
+  try{
+    const snap = await window._fbGet(window._fbRef(window._fbDb,'vitalya/machineRequests'));
+    _machineRequestsCache = snap.exists() ? (snap.val() || {}) : {};
+  }catch(e){ console.error('Machine requests load',e); }
+  return _machineRequestsCache;
 }
-async function fbSaveMachineRequests(data){_machineRequestsCache=data||{};if(!window._fbReady)return;try{await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests'),_machineRequestsCache);}catch(e){console.error('Machine requests save',e);}}
+async function fbSaveMachineRequests(data){
+  _machineRequestsCache = data || {};
+  if(!window._fbReady) return;
+  try{ await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests'),_machineRequestsCache); }
+  catch(e){ console.error('Machine requests save',e); }
+}
 async function fbLoadApprovedMachines(){
-  if(!window._fbReady)return getApprovedMachines();
-  try{const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/machines'));_approvedMachinesCache=snap.exists()?(snap.val()||{}):{};return _approvedMachinesCache;}
-  catch(e){console.error('Machines load',e);return getApprovedMachines();}
+  if(!window._fbReady) return getApprovedMachines();
+  try{
+    const snap = await window._fbGet(window._fbRef(window._fbDb,'vitalya/machines'));
+    _approvedMachinesCache = snap.exists() ? (snap.val() || {}) : {};
+  }catch(e){ console.error('Approved machines load',e); }
+  return _approvedMachinesCache;
 }
-async function fbSaveApprovedMachines(data){_approvedMachinesCache=data||{};if(!window._fbReady)return;try{await window._fbSet(window._fbRef(window._fbDb,'vitalya/machines'),_approvedMachinesCache);}catch(e){console.error('Machines save',e);}}
-function fbListenMachineRequests(){if(!window._fbReady)return;try{window._fbOnValue(window._fbRef(window._fbDb,'vitalya/machineRequests'),snap=>{_machineRequestsCache=snap.exists()?(snap.val()||{}):{};renderMachineRequests();renderMyMachineRequestList();});}catch(e){}}
-function fbListenApprovedMachines(){if(!window._fbReady)return;try{window._fbOnValue(window._fbRef(window._fbDb,'vitalya/machines'),snap=>{_approvedMachinesCache=snap.exists()?(snap.val()||{}):{};buildFichesList();renderMyMachineRequestList();});}catch(e){}}
+async function fbSaveApprovedMachines(data){
+  _approvedMachinesCache = data || {};
+  if(!window._fbReady) return;
+  try{ await window._fbSet(window._fbRef(window._fbDb,'vitalya/machines'),_approvedMachinesCache); }
+  catch(e){ console.error('Approved machines save',e); }
+}
+function fbListenMachineRequests(){
+  if(!window._fbReady) return;
+  try{
+    window._fbOnValue(window._fbRef(window._fbDb,'vitalya/machineRequests'), snap => {
+      _machineRequestsCache = snap.exists() ? (snap.val() || {}) : {};
+      renderMachineRequests();
+      renderMyMachineRequestList();
+    });
+  }catch(e){}
+}
+function fbListenApprovedMachines(){
+  if(!window._fbReady) return;
+  try{
+    window._fbOnValue(window._fbRef(window._fbDb,'vitalya/machines'), snap => {
+      _approvedMachinesCache = snap.exists() ? (snap.val() || {}) : {};
+      buildFichesList();
+      renderMyMachineRequestList();
+    });
+  }catch(e){}
+}
 
-function resetMachineDraft(){_machineBranchDraft=[];const file=document.getElementById('machinePhotoInput');if(file)file.value='';}
-function renderMachineBranchDraft(){
-  const wrap=document.getElementById('machineBranchesWrap');if(!wrap)return;
-  if(!_machineBranchDraft.length){wrap.innerHTML='<div class="machine-mini-note">Ajoutez au moins un branchement.</div>';return;}
-  wrap.innerHTML=_machineBranchDraft.map((b,i)=>'<div class="machine-branch-row"><div class="machine-branch-head"><div class="machine-branch-index">'+(i+1)+'</div><div style="font-size:12px;font-weight:800;">Branchement '+(i+1)+'</div><button class="machine-remove-branch" onclick="removeMachineBranch('+i+')">✕</button></div><input class="modal-input machine-branch-name" data-index="'+i+'" placeholder="Nom (ex : Détergent)" value="'+escapeHtml(b.name)+'" style="margin-bottom:7px;"><textarea class="modal-input machine-branch-desc" data-index="'+i+'" placeholder="Décris le branchement, la référence, l emplacement, la couleur..." style="min-height:78px;resize:vertical;margin-bottom:0;">'+escapeHtml(b.description)+'</textarea></div>').join('');
-  wrap.querySelectorAll('.machine-branch-name').forEach(el=>el.addEventListener('input',e=>_machineBranchDraft[+e.target.dataset.index].name=e.target.value));
-  wrap.querySelectorAll('.machine-branch-desc').forEach(el=>el.addEventListener('input',e=>_machineBranchDraft[+e.target.dataset.index].description=e.target.value));
+function resetMachineDraft(){
+  _machineDraft = { branchFiles: [] };
 }
-function addMachineBranch(){_machineBranchDraft.push({name:'',description:''});renderMachineBranchDraft();setTimeout(()=>{const els=document.querySelectorAll('.machine-branch-name');els[els.length-1]?.focus();},50);}
-function removeMachineBranch(i){_machineBranchDraft.splice(i,1);renderMachineBranchDraft();}
-function previewMachinePhoto(input){const p=document.getElementById('machinePhotoPreview'),img=document.getElementById('machinePhotoImg');if(!p||!img)return;if(!input.files?.[0]){p.style.display='none';img.src='';return;}img.src=URL.createObjectURL(input.files[0]);p.style.display='block';}
+function previewMachinePhoto(input){
+  const wrap = document.getElementById('machinePhotoPreview');
+  const img = document.getElementById('machinePhotoImg');
+  if(!wrap || !img) return;
+  if(!input.files?.[0]){
+    wrap.style.display='none';
+    img.src='';
+    return;
+  }
+  img.src = URL.createObjectURL(input.files[0]);
+  wrap.style.display='block';
+}
+function previewBranchPhotos(input){
+  const files = Array.from(input.files || []);
+  _machineDraft.branchFiles = files;
+  const count = document.getElementById('branchPhotoCount');
+  const preview = document.getElementById('branchPhotoPreviewList');
+  if(count) count.textContent = files.length ? ('✅ ' + files.length + ' photo' + (files.length > 1 ? 's' : '') + ' sélectionnée' + (files.length > 1 ? 's' : '')) : '';
+  if(preview){
+    preview.innerHTML = files.map(file => '<img src="' + URL.createObjectURL(file) + '" alt="">').join('');
+  }
+}
 
 function showAddMachineModal(){
   resetMachineDraft();
-  showModal('<div class="modal-title">➕ Ajouter une machine</div>'+
-    '<div class="machine-form-section"><div class="machine-form-step"><span class="machine-step-num">1</span> Photo de la machine</div><div class="machine-mini-note" style="margin-bottom:10px;">Prenez une photo claire de la machine.</div><div class="machine-file-zone" onclick="document.getElementById(\'machinePhotoInput\').click()"><div class="icon">📷</div><div class="title">Prendre une photo / choisir une image</div><div class="sub">Une photo obligatoire</div></div><input type="file" id="machinePhotoInput" accept="image/*" capture="environment" style="display:none;" onchange="previewMachinePhoto(this)"><div class="machine-preview" id="machinePhotoPreview"><img id="machinePhotoImg" alt="Aperçu machine"></div></div>'+
-    '<div class="machine-form-section"><div class="machine-form-step"><span class="machine-step-num">2</span> Informations machine</div><input class="modal-input" id="machineName" placeholder="Nom de la machine (ex : Lave-vaisselle Hobart)"><input class="modal-input" id="machineModel" placeholder="Modèle / référence (facultatif)"><textarea class="modal-input" id="machineNote" placeholder="Informations utiles (facultatif)" style="min-height:70px;resize:vertical;"></textarea></div>'+
-    '<div class="machine-form-section"><div class="machine-form-step"><span class="machine-step-num">3</span> Branchements</div><div class="machine-mini-note" style="margin-bottom:10px;">Ajoutez les branchements un par un. L admin les vérifiera avant publication.</div><div id="machineBranchesWrap"></div><button type="button" onclick="addMachineBranch()" style="width:100%;margin-top:8px;background:rgba(108,99,255,.12);border:1px solid rgba(108,99,255,.28);border-radius:10px;padding:10px;color:#A59DFF;font-family:Outfit,sans-serif;font-weight:800;cursor:pointer;">➕ Ajouter un branchement</button></div>'+
-    '<div class="machine-mini-note" style="margin:2px 0 12px;">🔒 Votre proposition reste invisible dans les Fiches tant qu elle n est pas validée.</div>'+
-    '<div class="modal-btn-row"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button><button class="modal-btn modal-btn-primary" onclick="submitMachineRequest()">📨 Envoyer pour validation</button></div>');
-  addMachineBranch();
-  setTimeout(()=>document.getElementById('machineName')?.focus(),100);
+  showModal(
+    '<div class="modal-title">➕ Ajouter une machine</div>' +
+    '<div class="machine-form-section">' +
+      '<div class="machine-form-step"><span class="machine-step-num">1</span> Quel système tu installes ?</div>' +
+      '<select id="machineSystemType" class="machine-system-select">' +
+        '<option value="">Choisir le système…</option>' +
+        '<option>Lave-vaisselle convoyeur</option>' +
+        '<option>Lave-vaisselle monobain</option>' +
+        '<option>Lave-batterie</option>' +
+        '<option>Lave-verres</option>' +
+        '<option>Doseur D250</option>' +
+        '<option>Doseur D3000</option>' +
+        '<option>Revoflow</option>' +
+        '<option>Accuratic</option>' +
+        '<option>Poste de désinfection</option>' +
+        '<option>QFM</option>' +
+        '<option>DQFM</option>' +
+        '<option>Autre</option>' +
+      '</select>' +
+      '<div id="machineOtherTypeWrap" style="display:none;">' +
+        '<input class="modal-input" id="machineOtherType" placeholder="Nom du système (ex : doseur spécial)">' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="machine-form-section">' +
+      '<div class="machine-form-step"><span class="machine-step-num">2</span> Nom / marque de la machine</div>' +
+      '<input class="modal-input" id="machineSystemName" placeholder="Ex : Hobart, Winterhalter, Diversey D250…">' +
+      '<input class="modal-input" id="machineModel" placeholder="Modèle / référence (facultatif)">' +
+    '</div>' +
+
+    '<div class="machine-form-section">' +
+      '<div class="machine-form-step"><span class="machine-step-num">3</span> Photo de la machine ou du doseur</div>' +
+      '<div class="machine-form-note">Une photo principale est obligatoire.</div>' +
+      '<div class="machine-file-zone" onclick="document.getElementById(\'machinePhotoInput\').click()">' +
+        '<div class="icon">📷</div>' +
+        '<div class="title">Prendre une photo / choisir une image</div>' +
+        '<div class="sub">Photo principale</div>' +
+      '</div>' +
+      '<input type="file" id="machinePhotoInput" accept="image/*" capture="environment" style="display:none;" onchange="previewMachinePhoto(this)">' +
+      '<div class="machine-preview" id="machinePhotoPreview"><img id="machinePhotoImg" alt="Aperçu machine"></div>' +
+    '</div>' +
+
+    '<div class="machine-form-section">' +
+      '<div class="machine-form-step"><span class="machine-step-num">4</span> Photos des branchements</div>' +
+      '<div class="machine-form-note">Tu peux prendre une photo ou plusieurs photos. Elles seront toutes visibles dans la fiche après validation.</div>' +
+      '<div class="machine-file-zone" onclick="document.getElementById(\'branchPhotoInput\').click()">' +
+        '<div class="icon">🔌</div>' +
+        '<div class="title">Ajouter les photos des branchements</div>' +
+        '<div class="sub">Plusieurs photos possibles</div>' +
+      '</div>' +
+      '<input type="file" id="branchPhotoInput" accept="image/*" capture="environment" multiple style="display:none;" onchange="previewBranchPhotos(this)">' +
+      '<div id="branchPhotoCount" class="machine-file-count"></div>' +
+      '<div id="branchPhotoPreviewList" class="machine-request-photo-list"></div>' +
+    '</div>' +
+
+    '<div class="machine-form-note" style="margin:4px 0 12px;">🔒 La proposition reste en attente et ne sera visible par les techniciens qu’après validation admin.</div>' +
+    '<div class="modal-btn-row">' +
+      '<button class="modal-btn modal-btn-cancel" onclick="closeModal()">Annuler</button>' +
+      '<button class="modal-btn modal-btn-primary" onclick="submitMachineRequest()">📨 Envoyer</button>' +
+    '</div>'
+  );
+
+  document.getElementById('machineSystemType')?.addEventListener('change', function(){
+    const wrap = document.getElementById('machineOtherTypeWrap');
+    if(wrap) wrap.style.display = this.value === 'Autre' ? 'block' : 'none';
+  });
+}
+
+async function uploadMachineImage(file, folder){
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  fd.append('folder', folder);
+  const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload',{method:'POST',body:fd});
+  const data = await resp.json();
+  if(!data.secure_url) throw new Error('Upload image impossible');
+  return data.secure_url;
 }
 
 async function submitMachineRequest(){
-  const name=document.getElementById('machineName')?.value.trim(),model=document.getElementById('machineModel')?.value.trim(),note=document.getElementById('machineNote')?.value.trim(),file=document.getElementById('machinePhotoInput')?.files?.[0];
-  if(!name){showToast('⚠️ Nom de la machine obligatoire',true);return;}if(!file){showToast('⚠️ Ajoutez une photo de la machine',true);return;}
-  const branches=_machineBranchDraft.map(b=>({name:String(b.name||'').trim(),description:String(b.description||'').trim()})).filter(b=>b.name||b.description);
-  if(!branches.length){showToast('⚠️ Ajoutez au moins un branchement',true);return;}if(branches.some(b=>!b.name||!b.description)){showToast('⚠️ Complétez chaque branchement',true);return;}
-  const btn=document.querySelector('.modal-btn-primary');if(btn){btn.disabled=true;btn.textContent='⏳ Envoi...';}
+  const typeSelect = document.getElementById('machineSystemType');
+  const systemType = typeSelect?.value === 'Autre'
+    ? (document.getElementById('machineOtherType')?.value.trim() || '')
+    : (typeSelect?.value || '');
+  const systemName = document.getElementById('machineSystemName')?.value.trim();
+  const model = document.getElementById('machineModel')?.value.trim();
+  const machineFile = document.getElementById('machinePhotoInput')?.files?.[0];
+  const branchFiles = _machineDraft.branchFiles || [];
+
+  if(!systemType){ showToast('⚠️ Choisis le système installé',true); return; }
+  if(!systemName){ showToast('⚠️ Indique le nom ou la marque de la machine',true); return; }
+  if(!machineFile){ showToast('⚠️ Ajoute la photo de la machine ou du doseur',true); return; }
+  if(!branchFiles.length){ showToast('⚠️ Ajoute au moins une photo de branchement',true); return; }
+
+  const btn = document.querySelector('.modal-btn-primary');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Envoi des photos…'; }
+
   try{
-    if(!window._fbReady)throw new Error('Firebase indisponible');
-    const fd=new FormData();fd.append('file',file);fd.append('upload_preset',CLOUDINARY_PRESET);fd.append('folder','vitalya/machines');
-    const resp=await fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY_CLOUD+'/image/upload',{method:'POST',body:fd});const data=await resp.json();if(!data.secure_url)throw new Error('Upload impossible');
-    const id='machine-'+Date.now(),requests=await fbLoadMachineRequests();
-    requests[id]={id,name,model,note,photoUrl:data.secure_url,branches,createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||'',status:'pending'};
-    await fbSaveMachineRequests(requests);closeModal();showToast('✅ Machine envoyée — en attente de validation admin');
-  }catch(e){console.error(e);if(btn){btn.disabled=false;btn.textContent='📨 Envoyer pour validation';}showToast('❌ Impossible d envoyer la machine',true);}
+    if(!window._fbReady) throw new Error('Firebase indisponible');
+
+    const machinePhotoUrl = await uploadMachineImage(machineFile,'vitalya/machines');
+    const branchPhotos = [];
+    for(const file of branchFiles){
+      branchPhotos.push(await uploadMachineImage(file,'vitalya/machines/branchements'));
+    }
+
+    const requests = await fbLoadMachineRequests();
+    const id = 'machine-' + Date.now();
+    requests[id] = {
+      id,
+      systemType,
+      systemName,
+      model,
+      machinePhotoUrl,
+      branchPhotos,
+      createdAt: Date.now(),
+      createdBy: currentUser?.id || '',
+      createdByName: currentUser?.name || '',
+      status: 'pending'
+    };
+    await fbSaveMachineRequests(requests);
+
+    closeModal();
+    showToast('✅ Machine envoyée — attente de validation admin');
+  }catch(e){
+    console.error(e);
+    if(btn){ btn.disabled=false; btn.textContent='📨 Envoyer'; }
+    showToast('❌ Impossible d’envoyer les photos',true);
+  }
 }
 
 function renderMyMachineRequestList(){
-  const el=document.getElementById('myMachineRequestsList');if(!el||!currentUser)return;
-  const pending=Object.values(getMachineRequests()).filter(r=>r.createdBy===currentUser.id).map(r=>({...r,displayStatus:r.status||'pending'}));
-  const approved=Object.values(getApprovedMachines()).filter(r=>r.createdBy===currentUser.id).map(r=>({...r,displayStatus:'approved'}));
-  const all=pending.concat(approved).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  el.innerHTML=all.length?all.map(r=>{const st=r.displayStatus,cls=st==='approved'?'machine-status-approved':st==='rejected'?'machine-status-rejected':'machine-status-pending',lab=st==='approved'?'✅ Validée':st==='rejected'?'❌ Refusée':'⏳ En attente';return '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><div style="font-size:13px;font-weight:800;">'+escapeHtml(r.name)+'</div><span class="machine-status-badge '+cls+'">'+lab+'</span></div><div class="machine-mini-note">'+(r.model?escapeHtml(r.model)+' · ':'')+new Date(r.createdAt||Date.now()).toLocaleDateString('fr-FR')+'</div></div>';}).join(''):'<div class="machine-mini-note">Aucune demande pour le moment.</div>';
+  const el = document.getElementById('myMachineRequestsList');
+  if(!el || !currentUser) return;
+  const pending = Object.values(getMachineRequests()).filter(r=>r.createdBy===currentUser.id);
+  const approved = Object.values(getApprovedMachines()).filter(r=>r.createdBy===currentUser.id)
+    .map(r=>({...r,status:'approved'}));
+  const all = pending.concat(approved).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+
+  el.innerHTML = all.length ? all.map(r => {
+    const st = r.status || 'pending';
+    const cls = st==='approved' ? 'machine-status-approved' : st==='rejected' ? 'machine-status-rejected' : 'machine-status-pending';
+    const label = st==='approved' ? '✅ Validée' : st==='rejected' ? '❌ Refusée' : '⏳ En attente';
+    return '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">' +
+      '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center">' +
+      '<div style="font-size:13px;font-weight:800">' + escapeHtml(r.systemName) + '</div>' +
+      '<span class="machine-status-badge ' + cls + '">' + label + '</span>' +
+      '</div>' +
+      '<div class="machine-mini-note">' + escapeHtml(r.systemType || '') + ' · ' + new Date(r.createdAt||Date.now()).toLocaleDateString('fr-FR') + '</div>' +
+      '</div>';
+  }).join('') : '<div class="machine-mini-note">Aucune demande pour le moment.</div>';
 }
-function showMyMachineRequests(){showModal('<div class="modal-title">📨 Mes demandes de machines</div><div class="machine-mini-note" style="margin-bottom:8px;">Les machines apparaissent dans les Fiches uniquement après validation de l admin.</div><div id="myMachineRequestsList"></div><div class="modal-btn-row" style="margin-top:14px;"><button class="modal-btn modal-btn-cancel" onclick="closeModal()">Fermer</button><button class="modal-btn modal-btn-primary" onclick="closeModal();showAddMachineModal()">➕ Nouvelle machine</button></div>');renderMyMachineRequestList();}
+
+function showMyMachineRequests(){
+  showModal(
+    '<div class="modal-title">📨 Mes demandes</div>' +
+    '<div class="machine-form-note" style="margin-bottom:8px">Les machines apparaissent dans les Fiches uniquement après validation admin.</div>' +
+    '<div id="myMachineRequestsList"></div>' +
+    '<div class="modal-btn-row" style="margin-top:14px">' +
+      '<button class="modal-btn modal-btn-cancel" onclick="closeModal()">Fermer</button>' +
+      '<button class="modal-btn modal-btn-primary" onclick="closeModal();showAddMachineModal()">➕ Ajouter une machine</button>' +
+    '</div>'
+  );
+  renderMyMachineRequestList();
+}
 
 function renderMachineRequests(){
-  const el=document.getElementById('machineRequestsList');if(!el)return;
-  const arr=Object.values(getMachineRequests()).filter(r=>!r.status||r.status==='pending').sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  if(!arr.length){el.innerHTML='<div class="machine-mini-note">✅ Aucune demande en attente.</div>';return;}
-  el.innerHTML=arr.map(r=>'<div class="machine-request-card"><div class="machine-request-top"><img class="machine-request-photo" src="'+escapeHtml(r.photoUrl)+'" alt=""><div class="machine-request-info"><div class="machine-request-name">'+escapeHtml(r.name)+'</div><div class="machine-request-meta">'+(r.model?escapeHtml(r.model)+'<br>':'')+'Proposée par : '+escapeHtml(r.createdByName||'Technicien')+'<br>'+new Date(r.createdAt||Date.now()).toLocaleString('fr-FR')+'</div></div></div>'+(r.note?'<div class="machine-mini-note" style="margin-top:9px;">'+escapeHtml(r.note)+'</div>':'')+'<div class="machine-request-branches">'+(r.branches||[]).map((b,i)=>'<div class="machine-request-branch"><strong>Branchement '+(i+1)+' — '+escapeHtml(b.name)+'</strong><br>'+escapeHtml(b.description)+'</div>').join('')+'</div><div class="machine-request-actions"><button class="machine-approve" onclick="approveMachineRequest(\''+r.id+'\')">✅ Valider</button><button class="machine-reject" onclick="rejectMachineRequest(\''+r.id+'\')">❌ Refuser</button></div></div>').join('');
-}
-async function approveMachineRequest(id){const requests=await fbLoadMachineRequests(),request=requests[id];if(!request){showToast('⚠️ Demande introuvable',true);return;}const machines=await fbLoadApprovedMachines();machines[id]={...request,status:'approved',approvedAt:Date.now(),approvedBy:currentUser?.id||'admin'};delete requests[id];await fbSaveApprovedMachines(machines);await fbSaveMachineRequests(requests);renderMachineRequests();buildFichesList();renderMyMachineRequestList();showToast('✅ Machine validée et publiée dans les Fiches');}
-async function rejectMachineRequest(id){const requests=await fbLoadMachineRequests();if(!requests[id])return;requests[id].status='rejected';requests[id].rejectedAt=Date.now();requests[id].rejectedBy=currentUser?.id||'admin';await fbSaveMachineRequests(requests);renderMachineRequests();renderMyMachineRequestList();showToast('❌ Proposition refusée');}
+  const el = document.getElementById('machineRequestsList');
+  if(!el) return;
+  const arr = Object.values(getMachineRequests())
+    .filter(r => !r.status || r.status === 'pending')
+    .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
 
-function openMachineDetail(id){const m=getApprovedMachines()[id];if(!m)return;document.getElementById('fichesList').style.display='none';document.getElementById('galleryView').style.display='none';document.getElementById('ficheDetail').style.display='flex';document.getElementById('ficheTitle').textContent='🛠️ '+m.name;document.getElementById('ficheSubtitle').textContent=m.model||'Machine validée';let html=m.photoUrl?'<img class="machine-detail-photo" src="'+escapeHtml(m.photoUrl)+'" alt="'+escapeHtml(m.name)+'">':'';if(m.note)html+='<div class="info-box">'+escapeHtml(m.note)+'</div>';html+='<div class="fiche-section"><div class="fiche-section-title">🔌 Branchements</div>'+(m.branches||[]).map((b,i)=>'<div class="machine-branch"><div class="machine-branch-title">'+(i+1)+'. '+escapeHtml(b.name)+'</div><div class="machine-branch-text">'+escapeHtml(b.description)+'</div></div>').join('')+'</div>';document.getElementById('ficheContent').innerHTML=html;document.getElementById('ficheContent').scrollTop=0;}
+  if(!arr.length){
+    el.innerHTML = '<div class="machine-mini-note">✅ Aucune demande en attente.</div>';
+    return;
+  }
+
+  el.innerHTML = arr.map(r => {
+    const branchPhotos = r.branchPhotos || [];
+    return '<div class="machine-request-card">' +
+      '<div class="machine-request-top">' +
+        '<img class="machine-request-photo" src="' + escapeHtml(r.machinePhotoUrl || r.photoUrl || '') + '" alt="">' +
+        '<div class="machine-request-info">' +
+          '<span class="fiches-system-chip">' + escapeHtml(r.systemType || '') + '</span>' +
+          '<div class="machine-request-name">' + escapeHtml(r.systemName || r.name || '') + '</div>' +
+          '<div class="machine-request-meta">' +
+            (r.model ? escapeHtml(r.model) + '<br>' : '') +
+            'Proposée par : ' + escapeHtml(r.createdByName || 'Technicien') + '<br>' +
+            new Date(r.createdAt||Date.now()).toLocaleString('fr-FR') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      (branchPhotos.length ? '<div class="machine-request-photo-list">' + branchPhotos.map(u=>'<img src="' + escapeHtml(u) + '" alt="Branchement">').join('') + '</div>' : '') +
+      '<div class="machine-request-actions">' +
+        '<button class="machine-approve" onclick="approveMachineRequest(\'' + r.id + '\')">✅ Valider</button>' +
+        '<button class="machine-reject" onclick="rejectMachineRequest(\'' + r.id + '\')">❌ Refuser</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function approveMachineRequest(id){
+  const requests = await fbLoadMachineRequests();
+  const request = requests[id];
+  if(!request){ showToast('⚠️ Demande introuvable',true); return; }
+
+  const machines = await fbLoadApprovedMachines();
+  machines[id] = {
+    ...request,
+    status:'approved',
+    approvedAt:Date.now(),
+    approvedBy:currentUser?.id || 'admin'
+  };
+  delete requests[id];
+
+  await fbSaveApprovedMachines(machines);
+  await fbSaveMachineRequests(requests);
+  renderMachineRequests();
+  buildFichesList();
+  renderMyMachineRequestList();
+  showToast('✅ Machine validée et publiée');
+}
+
+async function rejectMachineRequest(id){
+  const requests = await fbLoadMachineRequests();
+  if(!requests[id]) return;
+  requests[id].status='rejected';
+  requests[id].rejectedAt=Date.now();
+  requests[id].rejectedBy=currentUser?.id || 'admin';
+  await fbSaveMachineRequests(requests);
+  renderMachineRequests();
+  renderMyMachineRequestList();
+  showToast('❌ Proposition refusée');
+}
+
+function openMachineDetail(id){
+  const m = getApprovedMachines()[id];
+  if(!m) return;
+
+  document.getElementById('fichesList').style.display='none';
+  document.getElementById('galleryView').style.display='none';
+  document.getElementById('ficheDetail').style.display='flex';
+
+  document.getElementById('ficheTitle').textContent = '🛠️ ' + (m.systemName || m.name || 'Machine');
+  document.getElementById('ficheSubtitle').textContent = m.systemType || 'Machine validée';
+
+  let html = '';
+  if(m.machinePhotoUrl || m.photoUrl){
+    html += '<img class="machine-detail-photo" src="' + escapeHtml(m.machinePhotoUrl || m.photoUrl) + '" alt="">';
+  }
+  html += '<div class="fiche-section"><div class="fiche-section-title">🏷️ Système</div>' +
+    '<div class="fiche-row"><div class="fiche-key">Type</div><div class="fiche-val">' + escapeHtml(m.systemType || '') + '</div></div>' +
+    '<div class="fiche-row"><div class="fiche-key">Nom / marque</div><div class="fiche-val"><strong>' + escapeHtml(m.systemName || m.name || '') + '</strong></div></div>' +
+    (m.model ? '<div class="fiche-row"><div class="fiche-key">Modèle</div><div class="fiche-val">' + escapeHtml(m.model) + '</div></div>' : '') +
+    '</div>';
+
+  const branchPhotos = m.branchPhotos || [];
+  if(branchPhotos.length){
+    html += '<div class="fiche-section"><div class="fiche-section-title">🔌 Photos des branchements</div><div class="machine-branch-gallery">' +
+      branchPhotos.map(u=>'<img src="' + escapeHtml(u) + '" onclick="openLightbox(\'' + escapeHtml(u) + '\',\'Branchement\')" alt="Branchement">').join('') +
+      '</div></div>';
+  }else if(Array.isArray(m.branches) && m.branches.length){
+    html += '<div class="fiche-section"><div class="fiche-section-title">🔌 Branchements</div>' +
+      m.branches.map((b,i)=>'<div class="machine-branch"><div class="machine-branch-title">' + (i+1) + '. ' + escapeHtml(b.name) + '</div><div class="machine-branch-text">' + escapeHtml(b.description) + '</div></div>').join('') +
+      '</div>';
+  }
+
+  document.getElementById('ficheContent').innerHTML = html;
+  document.getElementById('ficheContent').scrollTop=0;
+}
 // =====================
 // LOGIN
 // =====================
@@ -2107,6 +2449,7 @@ async function doLogin() {
     // Log connexion
     logConnection(user.id, user.name);
     showScreen('techScreen');
+    switchTab('fiches');
     // Update topbar with user name
     document.getElementById('topbarUser').textContent = `👤 ${user.name}`;
     // Load user-specific history & favs
@@ -4680,29 +5023,57 @@ function showModal(html) { document.getElementById('modalContent').innerHTML = h
 function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
 document.getElementById('modalOverlay')?.addEventListener('click', function(e) { if(e.target===this) closeModal(); });
 
-function buildFichesList() {
-  const cats = getCats(); const photos = getPhotos();
-  const container = document.getElementById('fichesList'); if (!container) return;
-  const staticFiches = container.querySelector('.cats-inner'); if (!staticFiches) return;
-  const oldDyn = staticFiches.querySelector('.dynamic-cats-section'); if (oldDyn) oldDyn.remove();
-  const catsWithPhotos = cats.filter(c => countPhotos(photos, c.id) > 0);
-  const machineList = Object.values(getApprovedMachines()).filter(m => m.status === 'approved').sort((a,b) => (b.approvedAt||0) - (a.approvedAt||0));
+function buildFichesList(){
+  const cats = getCats();
+  const photos = getPhotos();
+  const container = document.getElementById('fichesList');
+  if(!container) return;
+  const staticFiches = container.querySelector('.cats-inner');
+  if(!staticFiches) return;
 
-  const dynSection = document.createElement('div'); dynSection.className = 'dynamic-cats-section';
-  dynSection.innerHTML = `<div class="section-title" style="margin-top:20px;">📸 Galeries Photos</div>` +
-    cats.map(cat => {
-      const total = countPhotos(photos, cat.id); if (!total) return '';
-      return `<div class="cat-card" onclick="openDynamicGallery('${cat.id}')">
-        <div class="cat-icon blue">${cat.icon}</div>
-        <div class="cat-info"><div class="cat-name">${cat.name}</div><div class="cat-count">${total} photo${total!==1?'s':''}</div></div>
-        <div class="cat-arrow">›</div></div>`;
-    }).join('');
-  if (catsWithPhotos.length) staticFiches.appendChild(dynSection);
-  const oldMachines = staticFiches.querySelector('.approved-machines-section'); if (oldMachines) oldMachines.remove();
-  if (machineList.length) {
-    const ms=document.createElement('div'); ms.className='approved-machines-section';
-    ms.innerHTML='<div class="section-title" style="margin-top:20px;">🛠️ Machines ajoutées</div>' + machineList.map(m => '<div class="machine-card" onclick="openMachineDetail(\''+m.id+'\')"><div class="machine-card-head"><img class="machine-card-photo" src="'+escapeHtml(m.photoUrl)+'" alt=""><div class="machine-card-info"><div class="machine-card-name">'+escapeHtml(m.name)+'</div><div class="machine-card-meta">'+(m.model?escapeHtml(m.model)+' · ':'')+(m.branches||[]).length+' branchement'+((m.branches||[]).length!==1?'s':'')+'</div></div><div class="machine-card-arrow">›</div></div></div>').join('');
-    staticFiches.appendChild(ms);
+  const machineHome = document.getElementById('approvedMachinesHome');
+  if(machineHome){
+    const machineList = Object.values(getApprovedMachines())
+      .filter(m=>m.status==='approved')
+      .sort((a,b)=>(b.approvedAt||0)-(a.approvedAt||0));
+
+    machineHome.innerHTML = machineList.length
+      ? '<div class="fiches-machine-grid">' + machineList.map(m =>
+          '<div class="fiches-machine-card" onclick="openMachineDetail(\'' + m.id + '\')">' +
+            '<img class="fiches-machine-photo" src="' + escapeHtml(m.machinePhotoUrl || m.photoUrl || '') + '" alt="">' +
+            '<div class="fiches-machine-info">' +
+              '<span class="fiches-system-chip">' + escapeHtml(m.systemType || 'Système') + '</span>' +
+              '<div class="fiches-machine-name">' + escapeHtml(m.systemName || m.name || 'Machine') + '</div>' +
+              '<div class="fiches-machine-meta">' +
+                (m.model ? escapeHtml(m.model) + ' · ' : '') +
+                ((m.branchPhotos || []).length || (m.branches || []).length) + ' photo' +
+                ((((m.branchPhotos || []).length || (m.branches || []).length) !== 1) ? 's' : '') +
+                ' de branchement' +
+              '</div>' +
+            '</div>' +
+            '<div class="fiches-machine-arrow">›</div>' +
+          '</div>'
+        ).join('') + '</div>'
+      : '<div class="machine-form-note" style="padding:2px 0 4px;">Aucune machine validée pour le moment. Ajoute la première avec le bouton ci-dessus.</div>';
+  }
+
+  const oldDyn = staticFiches.querySelector('.dynamic-cats-section');
+  if(oldDyn) oldDyn.remove();
+
+  const catsWithPhotos = cats.filter(c=>countPhotos(photos,c.id)>0);
+  if(catsWithPhotos.length){
+    const dynSection = document.createElement('div');
+    dynSection.className='dynamic-cats-section';
+    dynSection.innerHTML =
+      '<div class="section-title" style="margin-top:20px;">📸 Galeries Photos</div>' +
+      catsWithPhotos.map(cat => {
+        const total = countPhotos(photos,cat.id);
+        return '<div class="cat-card" onclick="openDynamicGallery(\'' + cat.id + '\')">' +
+          '<div class="cat-icon blue">' + cat.icon + '</div>' +
+          '<div class="cat-info"><div class="cat-name">' + escapeHtml(cat.name) + '</div><div class="cat-count">' +
+          total + ' photo' + (total!==1?'s':'') + '</div></div><div class="cat-arrow">›</div></div>';
+      }).join('');
+    staticFiches.appendChild(dynSection);
   }
 }
 
