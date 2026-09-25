@@ -5096,34 +5096,59 @@ function buildFichesList(){
   const mount=document.getElementById('machineLibraryHome');if(!mount)return;
   const machines=Object.values(getApprovedMachines()).filter(m=>m.status==='approved').sort((a,b)=>(b.approvedAt||b.createdAt||0)-(a.approvedAt||a.createdAt||0));
   const folders=getLibraryFolders();
-  const unknown={};
+  const fallbackFolder=folders.find(f=>f.id==='ext') || folders[folders.length-1];
   const groups={};
   folders.forEach(f=>groups[f.id]=[]);
   machines.forEach(m=>{
-    if(groups[m.folderId]) groups[m.folderId].push(m);
-    else { unknown[m.folderId||'other'] ||= []; unknown[m.folderId||'other'].push(m); }
+    const target=groups[m.folderId] ? m.folderId : (fallbackFolder ? fallbackFolder.id : null);
+    if(target)groups[target].push(m);
   });
-  Object.entries(unknown).forEach(([id,list])=>{ if(!groups[id])groups[id]=list; });
 
-  if(!machines.length){mount.innerHTML='<div class="library-empty">Aucun fichier validé pour le moment.</div>';return;}
   let html='';
   folders.forEach((f,ri)=>{
     const items=groups[f.id]||[];
     const rootId='lib-root-'+ri;
     const subs=f.subs||[];
-    const total=items.length;
-    html+='<div class="library-root-folder"><div class="library-folder-head" onclick="toggleLibraryFolder(\''+rootId+'\')"><div class="library-folder-icon">'+(f.icon||'📁')+'</div><div class="library-folder-info"><div class="library-folder-name">'+escapeHtml(f.name)+'</div><div class="library-folder-meta">'+total+' fichier'+(total!==1?'s':'')+'</div></div><div class="library-chevron" id="'+rootId+'-chev">›</div></div><div class="library-folder-body" id="'+rootId+'">';
-    if(!items.length){html+='<div class="library-empty">Aucun fichier validé.</div>';}
+    html+='<div class="library-root-folder">'+
+      '<div class="library-folder-head" onclick="toggleLibraryFolder(\''+rootId+'\')">'+
+        '<div class="library-folder-icon">'+(f.icon||'📁')+'</div>'+
+        '<div class="library-folder-info"><div class="library-folder-name">'+escapeHtml(f.name)+'</div><div class="library-folder-meta">'+items.length+' fichier'+(items.length!==1?'s':'')+'</div></div>'+
+        '<div class="library-chevron" id="'+rootId+'-chev">›</div>'+
+      '</div>'+
+      '<div class="library-folder-body" id="'+rootId+'">';
+
     const bySub={__none__:[]};
     items.forEach(m=>{const k=m.subfolderId||'__none__';bySub[k] ||= [];bySub[k].push(m);});
-    subs.forEach((sub,si)=>{
-      const arr=bySub[sub.id]||[];const subId=rootId+'-sub-'+si;
-      html+='<div class="library-subfolder"><div class="library-subfolder-head" onclick="toggleLibraryFolder(\''+subId+'\')"><div class="library-subfolder-icon">📂</div><div class="library-subfolder-info"><div class="library-subfolder-name">'+escapeHtml(sub.name)+'</div><div class="library-subfolder-meta">'+arr.length+' fichier'+(arr.length!==1?'s':'')+'</div></div><div class="library-chevron" id="'+subId+'-chev">›</div></div><div class="library-subfolder-body" id="'+subId+'">'+(arr.length?arr.map(m=>renderLibraryModel(m,f.name,sub.name,null,0)).join(''):'<div class="library-empty">Aucun fichier validé.</div>')+'</div></div>';
-    });
+
+    if(subs.length){
+      subs.forEach((sub,si)=>{
+        const arr=bySub[sub.id]||[];
+        const subId=rootId+'-sub-'+si;
+        html+='<div class="library-subfolder">'+
+          '<div class="library-subfolder-head" onclick="toggleLibraryFolder(\''+subId+'\')">'+
+            '<div class="library-subfolder-icon">📂</div>'+
+            '<div class="library-subfolder-info"><div class="library-subfolder-name">'+escapeHtml(sub.name)+'</div><div class="library-subfolder-meta">'+arr.length+' fichier'+(arr.length!==1?'s':'')+'</div></div>'+
+            '<div class="library-chevron" id="'+subId+'-chev">›</div>'+
+          '</div>'+
+          '<div class="library-subfolder-body" id="'+subId+'">'+
+            (arr.length ? arr.map(m=>renderLibraryModel(m,f.name,sub.name,null,0)).join('') : '<div class="library-empty">Aucun fichier.</div>')+
+          '</div>'+
+        '</div>';
+      });
+    }
+
     const direct=bySub.__none__||[];
-    if(direct.length)html+=direct.map(m=>renderLibraryModel(m,f.name,'',null,0)).join('');
-    html+='</div></div>';
+    if(direct.length){
+      html += direct.map(m=>renderLibraryModel(m,f.name,'',null,0)).join('');
+    }else if(!subs.length){
+      html += '<div class="library-empty">Aucun fichier validé.</div>';
+    }else if(!items.length){
+      html += '<div class="library-empty" style="padding-top:6px">Aucun fichier validé dans ce dossier.</div>';
+    }
+
+    html += '</div></div>';
   });
+
   mount.innerHTML=html;
 }
 
