@@ -1458,15 +1458,17 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
     </div>
     <div class="login-card">
       <div class="login-title">Connexion</div>
+      <form id="loginForm" onsubmit="event.preventDefault();doLogin();" autocomplete="on">
       <div class="input-group">
         <label class="input-label">Identifiant</label>
-        <input type="text" class="input-field" id="loginUser" placeholder="Votre identifiant" autocomplete="username" autocapitalize="none">
+        <input type="text" class="input-field" id="loginUser" name="username" placeholder="Votre identifiant" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false">
       </div>
       <div class="input-group">
         <label class="input-label">Mot de passe</label>
-        <input type="password" class="input-field" id="loginPwd" placeholder="Votre mot de passe" autocomplete="current-password">
+        <input type="password" class="input-field" id="loginPwd" name="password" placeholder="Votre mot de passe" autocomplete="current-password">
       </div>
-      <button class="btn-login" onclick="doLogin()">Se connecter →</button>
+      <button type="submit" class="btn-login">Se connecter →</button>
+      </form>
       <div class="login-error" id="loginError">❌ Identifiant ou mot de passe incorrect</div>
     </div>
   </div>
@@ -2716,8 +2718,9 @@ function getVideoPlaybackUrl(url){
   if(!s) return s;
   // Force a broadly compatible MP4 delivery from Cloudinary while keeping the original file untouched.
   // Vidéos Cloudinary : conversion en MP4 H.264, lisible sur iPhone, Android et PC (.mov iPhone inclus)
+  // H.264 profil "main" = 8 bits : lisible partout (les vidéos iPhone HDR 10 bits donnaient du son sans image)
   if(/res\.cloudinary\.com\//i.test(s) && s.includes('/video/upload/') && !s.includes('/upload/vc_h264')){
-    return s.replace('/video/upload/','/video/upload/vc_h264,q_auto/').replace(/\.(mov|m4v|webm|avi|mkv|3gp)(\?|$)/i,'.mp4$2');
+    return s.replace('/video/upload/','/video/upload/vc_h264:main:3.1,w_1280,c_limit,q_auto/').replace(/\.(mov|m4v|webm|avi|mkv|3gp|hevc)(\?|$)/i,'.mp4$2');
   }
   return s;
 }
@@ -2962,7 +2965,7 @@ function openMachineDetail(id){
 // LOGIN
 // =====================
 document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPwd').focus(); });
-document.getElementById('loginPwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
 
 async function doLogin() {
   const username = document.getElementById('loginUser').value.trim().toLowerCase();
@@ -2982,6 +2985,7 @@ async function doLogin() {
   // Admin check
   if ((username === 'admin' || username === '') && pwd === ADMIN_PWD) {
     currentUser = { id: 'admin', name: 'Admin', username: 'admin', isAdmin: true };
+    saveSession(currentUser);
     showScreen('adminScreen');
     Promise.all([fbLoadPhotos(), fbLoadCats(), fbLoadMachineRequests(), fbLoadApprovedMachines()]).then(() => {
       renderAdminDocs();
@@ -5460,7 +5464,7 @@ function mediaThumb(p, catId, subId, i) {
   const catStr = catId;
   if (isVideo(p.url)) {
     return `<div class="admin-photo-thumb">
-      <video src="${p.url}" style="width:100%;height:100%;object-fit:cover;" muted playsinline preload="metadata"></video>
+      <video src="${getVideoPlaybackUrl(p.url)}" style="width:100%;height:100%;object-fit:cover;" muted playsinline preload="metadata"></video>
       <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;pointer-events:none;">▶️</div>
       <button class="admin-photo-del" onclick="deletePhotoV2('${catStr}',${subStr},${i})">✕</button>
       <div class="admin-photo-label-edit" onclick="renamePhoto('${catStr}',${subStr},${i})">${p.label||'📝'}</div>
@@ -5882,7 +5886,7 @@ function openSubGallery(catId, subId, name, icon, hasParent) {
     const item = document.createElement('div'); item.className = 'photo-item';
     item.onclick = () => openLightboxGallery(idx);
     if (isVideo(p.url, p)) {
-      const vid = document.createElement('video'); vid.src = p.url;
+      const vid = document.createElement('video'); vid.src = getVideoPlaybackUrl(p.url); vid.playsInline = true;
       vid.style.cssText = 'width:100%;height:100%;object-fit:cover;'; vid.muted = true; vid.preload = 'metadata';
       item.appendChild(vid);
       const badge = document.createElement('div');
