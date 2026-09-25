@@ -2714,8 +2714,14 @@ function openAdminMachineMedia(el){
   if(!el) return;
   openLightbox(el.dataset.url || '', el.dataset.caption || 'Photo', el.dataset.video === 'true');
 }
+function normalizeMediaList(media){
+  if(Array.isArray(media)) return media;
+  if(media && typeof media==='object') return Object.values(media);
+  if(typeof media==='string' && media) return [media];
+  return [];
+}
 function renderAdminMachineMedia(media){
-  return (media||[]).map(x=>{
+  return normalizeMediaList(media).map(x=>{
     const item=typeof x==='string' ? {url:x,type:mediaKind(x)} : x;
     if(!item?.url) return '';
     if(item.type==='video'){
@@ -2735,7 +2741,9 @@ async function refreshAdminMachineRequests(){
     renderMachineRequests();
   }catch(e){
     console.error('Admin refresh machine requests',e);
-    showToast('❌ Impossible de charger les demandes',true);
+    // Keep whatever data was already loaded instead of blanking the Admin list.
+    try { renderMachineRequests(); } catch(renderErr) { console.error('Admin render machine requests',renderErr); }
+    showToast('❌ Impossible de charger les demandes : '+(e?.message || 'erreur inconnue'),true);
   }finally{
     if(btn){ btn.disabled=false; btn.textContent='🔄 Actualiser'; }
   }
@@ -2779,7 +2787,7 @@ function renderMachineRequests(){
       status==='rejected' ? '<span class="machine-status-badge machine-status-rejected">❌ Refusée</span>' :
       '<span class="machine-status-badge machine-status-pending">⏳ À valider</span>';
 
-    const media=r.branchMedia||r.branchPhotos||[];
+    const media=normalizeMediaList(r.branchMedia||r.branchPhotos||[]);
     const mainUrl=r.machinePhoto?.url||r.machinePhotoUrl||r.photoUrl||'';
     const safeId = escapeHtml(r.id || '');
     const actions = status==='pending'
@@ -5680,7 +5688,7 @@ function normalizeMachineMedia(m){
   const out=[];
   const primary=m.machinePhoto || (m.machinePhotoUrl ? {url:m.machinePhotoUrl,type:'image'} : (m.photoUrl ? {url:m.photoUrl,type:'image'} : null));
   if(primary?.url) out.push({...primary,type:mediaKind(primary.url,primary.type),primary:true});
-  const src=m.branchMedia || m.branchPhotos || [];
+  const src=normalizeMediaList(m.branchMedia || m.branchPhotos || []);
   for(const item of src){
     const x=typeof item==='string' ? {url:item,type:mediaKind(item)} : item;
     if(x?.url) out.push({...x,type:mediaKind(x.url,x.type),primary:false});
