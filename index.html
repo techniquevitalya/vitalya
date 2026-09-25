@@ -719,6 +719,13 @@ body.light-mode #globalSearchPanel{background:rgba(255,255,255,.98);border-color
 .machine-branch-gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.08);cursor:pointer}
 .machine-request-photo-list{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
 .machine-request-photo-list img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px}
+.machine-request-photo-wrap{position:relative;width:78px;height:78px;flex-shrink:0;cursor:pointer}
+.machine-request-photo-wrap .machine-request-photo{width:78px;height:78px}
+.machine-request-photo-wrap>span{position:absolute;right:5px;bottom:5px;background:rgba(0,0,0,.72);border-radius:8px;padding:3px 5px;font-size:11px}
+.machine-admin-media-click{position:relative;border-radius:9px;overflow:hidden;background:#000;cursor:pointer}
+.machine-admin-media-click img,.machine-admin-media-click video{width:100%;height:90px;object-fit:cover;display:block}
+.machine-admin-media-click>span{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.55);border-radius:50%;padding:8px;color:#fff}
+
 .machine-form-note{font-size:11px;color:var(--muted);line-height:1.5}
 .machine-file-count{font-size:11px;font-weight:800;color:var(--cyan);margin-top:7px}
 .machine-system-select{
@@ -2371,9 +2378,14 @@ async function fbLoadMachineRequests(){
 }
 async function fbSaveMachineRequests(data){
   _machineRequestsCache = data || {};
-  if(!window._fbReady) return;
-  try{ await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests'),_machineRequestsCache); }
-  catch(e){ console.error('Machine requests save',e); }
+  if(!window._fbReady) return false;
+  try{
+    await window._fbSet(window._fbRef(window._fbDb,'vitalya/machineRequests'),_machineRequestsCache);
+    return true;
+  }catch(e){
+    console.error('Machine requests save',e);
+    return false;
+  }
 }
 async function fbLoadApprovedMachines(){
   if(!window._fbReady) return getApprovedMachines();
@@ -2530,9 +2542,16 @@ async function submitMachineRequest(){
       id,folderId,subfolderId,systemType,systemName,model,machinePhoto,branchMedia,
       createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||'',status:'pending'
     };
-    await fbSaveMachineRequests(requests);
+    const saved = await fbSaveMachineRequests(requests);
+    if(!saved){
+      throw new Error('Firebase refus d’écriture');
+    }
+    const verify = await fbLoadMachineRequests();
+    if(!verify[id]){
+      throw new Error('Demande non retrouvée après enregistrement');
+    }
     closeModal();
-    showToast('✅ Fichier envoyé — attente de validation admin');
+    showToast('✅ Fichier envoyé — visible dans l’Admin pour validation');
   }catch(e){
     console.error(e);
     if(btn){btn.disabled=false;btn.textContent='📨 Envoyer';}
@@ -2543,10 +2562,10 @@ async function submitMachineRequest(){
 function renderMyMachineRequestList(){
   const el = document.getElementById('myMachineRequestsList');
   if(!el || !currentUser) return;
-  const pending = Object.values(getMachineRequests()).filter(r=>r.createdBy===currentUser.id);
+  const requests = Object.values(getMachineRequests()).filter(r=>r.createdBy===currentUser.id);
   const approved = Object.values(getApprovedMachines()).filter(r=>r.createdBy===currentUser.id)
     .map(r=>({...r,status:'approved'}));
-  const all = pending.concat(approved).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const all = requests.concat(approved).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
 
   el.innerHTML = all.length ? all.map(r => {
     const st = r.status || 'pending';
@@ -2582,29 +2601,80 @@ function renderMediaThumbs(media){
     return '<img src="'+escapeHtml(item.url)+'" alt="">';
   }).join('');
 }
-function renderMachineRequests(){
-  const el=document.getElementById('machineRequestsList');if(!el)return;
-  const pending = Object.values(getMachineRequests() || {});
-  const approved = Object.values(getApprovedMachines() || {}).map(r=>({...r,status:'approved'}));
-  const merged = new Map();
-  [...pending,...approved].forEach(r => {
-    if(!r || !r.id) return;
-    const prev = merged.get(r.id);
-    if(!prev || r.status === 'approved' || !prev.status) merged.set(r.id,r);
-  });
-  const arr = Array.from(merged.values()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  if(!arr.length){el.innerHTML='<div class="machine-mini-note">✅ Aucune proposition.</div>';return;}
-  el.innerHTML=arr.map(r=>{
-    const status = r.status || 'pending';
-    const statusHtml = status === 'approved' ? '<span class="machine-status-badge machine-status-approved">✅ Validée</span>' : status === 'rejected' ? '<span class="machine-status-badge machine-status-rejected">❌ Refusée</span>' : '<span class="machine-status-badge machine-status-pending">⏳ En attente</span>';
-    const media=r.branchMedia||r.branchPhotos||[];
-    const actions = status === 'pending' ? '<div class="machine-request-actions"><button class="machine-approve" onclick="approveMachineRequest(\\\''+escapeHtml(r.id)+'\\\')">✅ Valider</button><button class="machine-reject" onclick="rejectMachineRequest(\\\''+escapeHtml(r.id)+'\\\')">❌ Refuser</button></div>' : '';
-    return '<div class="machine-request-card">'+
-      '<div class="machine-request-top"><img class="machine-request-photo" src="'+escapeHtml(r.machinePhoto?.url||r.machinePhotoUrl||r.photoUrl||'')+'" alt="">'+
-      '<div class="machine-request-info"><div style="margin-bottom:5px">'+statusHtml+'</div><span class="fiches-system-chip">'+escapeHtml(r.systemType||'')+'</span><div class="machine-request-name">'+escapeHtml(r.systemName||r.name||'')+'</div><div class="machine-request-meta">'+(r.model?escapeHtml(r.model)+'<br>':'')+'Proposée par : '+escapeHtml(r.createdByName||'Technicien')+'<br>'+new Date(r.createdAt||Date.now()).toLocaleString('fr-FR')+'</div></div></div>'+
-      (media.length?'<div class="machine-request-photo-list">'+renderMediaThumbs(media)+'</div>':'')+actions+'</div>';
+function openAdminMachineMedia(el){
+  if(!el) return;
+  openLightbox(el.dataset.url || '', el.dataset.caption || 'Photo', el.dataset.video === 'true');
+}
+function renderAdminMachineMedia(media){
+  return (media||[]).map(x=>{
+    const item=typeof x==='string' ? {url:x,type:mediaKind(x)} : x;
+    if(!item?.url) return '';
+    if(item.type==='video'){
+      return '<div class="machine-admin-media-click" data-url="'+escapeHtml(item.url)+'" data-caption="'+escapeHtml(item.name||'Vidéo')+'" data-video="true" onclick="openAdminMachineMedia(this)"><video src="'+escapeHtml(item.url)+'" muted preload="metadata"></video><span>▶</span></div>';
+    }
+    return '<div class="machine-admin-media-click" data-url="'+escapeHtml(item.url)+'" data-caption="'+escapeHtml(item.name||'Photo')+'" onclick="openAdminMachineMedia(this)"><img src="'+escapeHtml(item.url)+'" alt="" loading="lazy"></div>';
   }).join('');
 }
+function renderMachineRequests(){
+  const el=document.getElementById('machineRequestsList');if(!el)return;
+
+  const requests = Object.values(getMachineRequests() || {});
+  const approved = Object.values(getApprovedMachines() || {}).map(r=>({...r,status:'approved'}));
+  const merged = new Map();
+
+  [...requests,...approved].forEach(r=>{
+    if(!r || !r.id) return;
+    const existing = merged.get(r.id);
+    if(!existing || r.status==='approved' || (!existing.status && r.status)) merged.set(r.id,r);
+  });
+
+  const arr=Array.from(merged.values()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(!arr.length){
+    el.innerHTML='<div class="machine-mini-note">✅ Aucune proposition enregistrée.</div>';
+    return;
+  }
+
+  el.innerHTML=arr.map(r=>{
+    const status=r.status||'pending';
+    const statusHtml =
+      status==='approved' ? '<span class="machine-status-badge machine-status-approved">✅ Validée</span>' :
+      status==='rejected' ? '<span class="machine-status-badge machine-status-rejected">❌ Refusée</span>' :
+      '<span class="machine-status-badge machine-status-pending">⏳ À valider</span>';
+
+    const media=r.branchMedia||r.branchPhotos||[];
+    const mainUrl=r.machinePhoto?.url||r.machinePhotoUrl||r.photoUrl||'';
+    const actions = status==='pending'
+      ? '<div class="machine-request-actions">'+
+          '<button class="machine-approve" onclick="approveMachineRequest(\\\''+escapeHtml(r.id)+'\\\')">✅ Valider</button>'+
+          '<button class="machine-reject" onclick="rejectMachineRequest(\\\''+escapeHtml(r.id)+'\\\')">❌ Refuser</button>'+
+        '</div>'
+      : (status==='rejected'
+          ? '<div class="machine-mini-note" style="margin-top:10px;color:#FF6B75">Cette proposition a été refusée.</div>'
+          : '<div class="machine-mini-note" style="margin-top:10px;color:#2ED573">Ce fichier est publié dans Fichiers.</div>');
+
+    const mainPhoto = mainUrl
+      ? '<div class="machine-request-photo-wrap" data-url="'+escapeHtml(mainUrl)+'" data-caption="'+escapeHtml(r.systemName||'Photo du système')+'" onclick="openAdminMachineMedia(this)"><img class="machine-request-photo" src="'+escapeHtml(mainUrl)+'" alt="" loading="lazy"><span>🔍</span></div>'
+      : '<div class="machine-request-photo" style="display:flex;align-items:center;justify-content:center;font-size:26px">⚙️</div>';
+
+    return '<div class="machine-request-card">'+
+      '<div class="machine-request-top">'+
+        mainPhoto+
+        '<div class="machine-request-info">'+
+          '<div style="margin-bottom:6px">'+statusHtml+'</div>'+
+          '<span class="fiches-system-chip">'+escapeHtml(r.systemType||'')+'</span>'+
+          '<div class="machine-request-name">'+escapeHtml(r.systemName||r.name||'')+'</div>'+
+          '<div class="machine-request-meta">'+(r.model?escapeHtml(r.model)+'<br>':'')+
+            'Proposée par : '+escapeHtml(r.createdByName||'Technicien')+'<br>'+
+            new Date(r.createdAt||Date.now()).toLocaleString('fr-FR')+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      (media.length ? '<div class="machine-request-photo-list machine-request-photo-list-clickable">'+renderAdminMachineMedia(media)+'</div>' : '')+
+      actions+
+      '</div>';
+  }).join('');
+}
+
 async function approveMachineRequest(id){
   const requests = await fbLoadMachineRequests();
   const request = requests[id];
@@ -2629,15 +2699,39 @@ async function approveMachineRequest(id){
 
 async function rejectMachineRequest(id){
   const requests = await fbLoadMachineRequests();
-  if(!requests[id]) return;
-  requests[id].status='rejected';
-  requests[id].rejectedAt=Date.now();
-  requests[id].rejectedBy=currentUser?.id || 'admin';
-  await fbSaveMachineRequests(requests);
+  const request = requests[id];
+  if(!request){
+    showToast('⚠️ Demande introuvable',true);
+    return;
+  }
+  if(request.status==='rejected'){
+    showToast('ℹ️ Cette proposition est déjà refusée');
+    return;
+  }
+
+  requests[id] = {
+    ...request,
+    status:'rejected',
+    rejectedAt:Date.now(),
+    rejectedBy:currentUser?.id || 'admin'
+  };
+
+  _machineRequestsCache = requests;
   renderMachineRequests();
   renderMyMachineRequestList();
+
+  const saved = await fbSaveMachineRequests(requests);
+  if(!saved){
+    _machineRequestsCache = await fbLoadMachineRequests();
+    renderMachineRequests();
+    renderMyMachineRequestList();
+    showToast('❌ Le refus n’a pas pu être enregistré dans Firebase',true);
+    return;
+  }
+
   showToast('❌ Proposition refusée');
 }
+
 
 function openMachineDetail(id){
   const m=getApprovedMachines()[id];
