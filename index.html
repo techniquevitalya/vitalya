@@ -2089,6 +2089,7 @@ const DEFAULT_LIBRARY_FOLDERS=[
   {id:'plg',name:'PLG',icon:'🟪',subs:[]},
   {id:'hps',name:'HPS',icon:'🟨',subs:[]},
   {id:'kiehl',name:'Kiehl',icon:'🟧',subs:[]},
+  {id:'seko',name:'SEKO',icon:'🟥',subs:[]},
   {id:'ext',name:'Autre',icon:'📁',subs:[]}
 ];
 let _libraryFoldersCache=null;
@@ -2117,7 +2118,17 @@ async function fbLoadLibraryFolders(){
   try{
     const snap=await window._fbGet(window._fbRef(window._fbDb,'vitalya/libraryFolders'));
     if(snap.exists())_libraryFoldersCache=normalizeLibraryFolders(snap.val()||DEFAULT_LIBRARY_FOLDERS);
-    else{_libraryFoldersCache=normalizeLibraryFolders(getLibraryFolders());await fbSaveLibraryFolders(_libraryFoldersCache);}
+    else _libraryFoldersCache=normalizeLibraryFolders(DEFAULT_LIBRARY_FOLDERS.map(f=>({...f,subs:(f.subs||[]).map(s=>({...s}))})));
+    let changed=false;
+    if(!_libraryFoldersCache.some(f=>f.id==='seko')){
+      _libraryFoldersCache.splice(Math.max(_libraryFoldersCache.length-1,0),0,{id:'seko',name:'SEKO',icon:'🟥',subs:[]});
+      changed=true;
+    }
+    if(!_libraryFoldersCache.some(f=>f.id==='ext')){
+      _libraryFoldersCache.push({id:'ext',name:'Autre',icon:'📁',subs:[]});
+      changed=true;
+    }
+    if(changed || !snap.exists()) await fbSaveLibraryFolders(_libraryFoldersCache);
     localStorage.setItem(LIBRARY_FOLDERS_KEY,JSON.stringify(_libraryFoldersCache));
     const extFolder=_libraryFoldersCache.find(f=>f.id==='ext');
     if(extFolder && extFolder.name==='Autre') await fbSaveLibraryFolders(_libraryFoldersCache);
