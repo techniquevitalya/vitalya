@@ -1574,6 +1574,7 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
             <div class="library-sub">Chaque système validé est rangé par type, puis par modèle / marque, avec ses photos et vidéos.</div>
             <button class="library-add-btn" onclick="showAddMachineModal()">➕ Ajouter un système de dosage</button>
             <button class="library-request-btn" onclick="showMyMachineRequests()">📨 Mes demandes</button>
+            <div id="offlineQueueNote" class="machine-mini-note" style="display:none;margin-top:8px;color:#FFB347;font-weight:700"></div>
           </div>
           <div id="machineLibraryHome"></div>
         </div>
@@ -2627,6 +2628,135 @@ async function uploadMachineMedia(file,folder){
   return {url:data.secure_url,type:data.resource_type==='video'?'video':'image',name:data.original_filename||file.name};
 }
 
+/* ==================== ENVOI HORS CONNEXION ==================== */
+// Sans réseau, la demande (photos comprises) est gardée sur le téléphone dans IndexedDB,
+// puis envoyée automatiquement dès que le réseau revient.
+var _offlinePending = [];
+var _offlineSyncBusy = false;
+const OFFLINE_DB_NAME = 'vitalya_offline_v1';
+const OFFLINE_STORE = 'machineRequests';
+
+function offlineDbOpen(){
+  return new Promise((res, rej) => {
+    if(!window.indexedDB) return rej(new Error('IndexedDB indisponible'));
+    const r = indexedDB.open(OFFLINE_DB_NAME, 1);
+    r.onupgradeneeded = () => { if(!r.result.objectStoreNames.contains(OFFLINE_STORE)) r.result.createObjectStore(OFFLINE_STORE, {keyPath:'id'}); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function offlineReq(mode, op){
+  return offlineDbOpen().then(db => new Promise((res, rej) => {
+    const tx = db.transaction(OFFLINE_STORE, mode);
+    const q = op(tx.objectStore(OFFLINE_STORE));
+    let v; q.onsuccess = () => { v = q.result; };
+    tx.oncomplete = () => { db.close(); res(v); };
+    tx.onerror = tx.onabort = () => { db.close(); rej(tx.error); };
+  }));
+}
+function offlineQueueAll(){ return offlineReq('readonly', s => s.getAll()).then(x => x || []); }
+function offlineQueuePut(item){ return offlineReq('readwrite', s => s.put(item)); }
+function offlineQueueDelete(id){ return offlineReq('readwrite', s => s.delete(id)); }
+
+function withTimeout(p, ms){
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('Délai dépassé')), ms))]);
+}
+// Réduit les grosses photos (max 1920 px) pour qu'elles prennent moins de place et partent plus vite
+function compressImageFile(file, maxDim = 1920, quality = 0.85){
+  return new Promise(resolve => {
+    if(!/^image\//i.test(file.type || '') || file.size < 1500000) return resolve(file);
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try{
+        const k = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const cv = document.createElement('canvas');
+        cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        cv.toBlob(b => {
+          URL.revokeObjectURL(url);
+          resolve(b ? new File([b], (file.name || 'photo').replace(/\.\w+$/, '') + '.jpg', {type:'image/jpeg'}) : file);
+        }, 'image/jpeg', quality);
+      }catch(e){ URL.revokeObjectURL(url); resolve(file); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+async function fileToOfflineRecord(file){
+  const f = await compressImageFile(file);
+  return { name: f.name || 'photo.jpg', type: f.type || 'image/jpeg', data: await f.arrayBuffer() };
+}
+function recordToFile(rec){ return new File([rec.data], rec.name, {type: rec.type}); }
+
+async function offlineQueueAdd(meta, machineFile, branchFiles){
+  const main = await fileToOfflineRecord(machineFile);
+  const branches = [];
+  for(const f of branchFiles) branches.push(await fileToOfflineRecord(f));
+  await offlineQueuePut({ id: meta.id, meta, main, branches, uploaded: null, queuedAt: Date.now() });
+}
+
+// Écrit UNE demande dans Firebase (sans toucher aux autres), puis vérifie qu'elle y est bien
+async function writeMachineRequest(data){
+  if(!window._fbReady) throw new Error('Firebase indisponible');
+  const ref = window._fbRef(window._fbDb, 'vitalya/machineRequests/' + data.id);
+  await withTimeout(window._fbSet(ref, data), 20000);
+  const snap = await withTimeout(window._fbGet(ref), 15000);
+  if(!snap.exists()) throw new Error('Demande non retrouvée après enregistrement');
+  _machineRequestsCache = { ...(_machineRequestsCache || {}), [data.id]: data };
+  renderMachineRequests();
+  renderMyMachineRequestList();
+}
+
+function renderOfflineNote(){
+  const el = document.getElementById('offlineQueueNote');
+  if(!el) return;
+  const n = _offlinePending.length;
+  el.style.display = n ? 'block' : 'none';
+  el.textContent = n ? '📶 ' + n + ' demande' + (n > 1 ? 's' : '') + ' en attente de réseau — envoi automatique' : '';
+}
+async function refreshOfflinePending(){
+  try{ _offlinePending = (await offlineQueueAll()).map(x => x.meta); }catch(e){ _offlinePending = []; }
+  renderOfflineNote();
+  renderMyMachineRequestList();
+}
+async function processOfflineQueue(){
+  if(_offlineSyncBusy || !navigator.onLine) return;
+  _offlineSyncBusy = true;
+  let sent = 0;
+  try{
+    const items = await offlineQueueAll();
+    if(items.length && await waitForFirebaseReady(8000)){
+      for(const it of items){
+        try{
+          if(!it.uploaded){
+            const machinePhoto = await uploadMachineMedia(recordToFile(it.main), 'vitalya/machines');
+            const branchMedia = [];
+            for(const r of it.branches) branchMedia.push(await uploadMachineMedia(recordToFile(r), 'vitalya/machines/media'));
+            it.uploaded = { machinePhoto, branchMedia };
+            await offlineQueuePut(it); // les photos ne seront pas renvoyées si l'étape suivante échoue
+          }
+          await writeMachineRequest({ ...it.meta, ...it.uploaded });
+          await offlineQueueDelete(it.id);
+          sent++;
+        }catch(e){
+          console.warn('Demande hors connexion : nouvel essai plus tard', e);
+          break;
+        }
+      }
+    }
+  }catch(e){ console.error('Synchro hors connexion', e); }
+  finally{
+    _offlineSyncBusy = false;
+    await refreshOfflinePending();
+    if(sent) showToast('✅ ' + sent + ' demande' + (sent > 1 ? 's' : '') + ' enregistrée' + (sent > 1 ? 's' : '') + ' hors connexion envoyée' + (sent > 1 ? 's' : ''));
+  }
+}
+window.addEventListener('online', () => setTimeout(processOfflineQueue, 1500));
+window.addEventListener('firebase-ready', () => setTimeout(processOfflineQueue, 1500));
+window.addEventListener('load', () => setTimeout(() => { refreshOfflinePending(); processOfflineQueue(); }, 2500));
+setInterval(processOfflineQueue, 30000);
+
 async function submitMachineRequest(){
   const folderId=document.getElementById('machineLibraryFolder')?.value||'';
   const subfolderId=document.getElementById('machineLibrarySubfolder')?.value||'';
@@ -2646,32 +2776,38 @@ async function submitMachineRequest(){
   const btn=document.querySelector('.modal-btn-primary');
   if(btn){btn.disabled=true;btn.textContent='⏳ Envoi…';}
 
-  try{
-    if(!window._fbReady)throw new Error('Firebase indisponible');
-    const machinePhoto=await uploadMachineMedia(machineFile,'vitalya/machines');
-    const branchMedia=[];
-    for(const file of branchFiles)branchMedia.push(await uploadMachineMedia(file,'vitalya/machines/media'));
+  const id='machine-'+Date.now();
+  const meta={
+    id,folderId,subfolderId,systemType,systemName,model:model||'',
+    createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||'',status:'pending'
+  };
 
-    const requests=await fbLoadMachineRequests();
-    const id='machine-'+Date.now();
-    requests[id]={
-      id,folderId,subfolderId,systemType,systemName,model,machinePhoto,branchMedia,
-      createdAt:Date.now(),createdBy:currentUser?.id||'',createdByName:currentUser?.name||'',status:'pending'
-    };
-    const saved = await fbSaveMachineRequests(requests);
-    if(!saved){
-      throw new Error('Firebase refus d’écriture');
+  // 1) Réseau disponible : envoi direct
+  if(navigator.onLine && window._fbReady){
+    try{
+      const machinePhoto=await uploadMachineMedia(machineFile,'vitalya/machines');
+      const branchMedia=[];
+      for(const file of branchFiles)branchMedia.push(await uploadMachineMedia(file,'vitalya/machines/media'));
+      await writeMachineRequest({...meta,machinePhoto,branchMedia});
+      closeModal();
+      showToast('✅ Fichier envoyé — visible dans l’Admin pour validation');
+      return;
+    }catch(e){
+      console.warn('Envoi direct impossible — demande gardée sur le téléphone',e);
     }
-    const verify = await fbLoadMachineRequests();
-    if(!verify[id]){
-      throw new Error('Demande non retrouvée après enregistrement');
-    }
+  }
+
+  // 2) Pas de réseau (ou envoi interrompu) : on garde tout sur le téléphone
+  try{
+    if(btn)btn.textContent='💾 Enregistrement…';
+    await offlineQueueAdd(meta,machineFile,branchFiles);
     closeModal();
-    showToast('✅ Fichier envoyé — visible dans l’Admin pour validation');
+    showToast('📶 Pas de réseau — demande gardée sur le téléphone, envoi automatique au retour du réseau');
+    refreshOfflinePending();
   }catch(e){
-    console.error(e);
+    console.error('Sauvegarde hors connexion',e);
     if(btn){btn.disabled=false;btn.textContent='📨 Envoyer';}
-    showToast('❌ Impossible d’envoyer les médias',true);
+    showToast('❌ Impossible d’enregistrer la demande',true);
   }
 }
 
@@ -2681,12 +2817,13 @@ function renderMyMachineRequestList(){
   const requests = Object.values(getMachineRequests()).filter(r=>r.createdBy===currentUser.id);
   const approved = Object.values(getApprovedMachines()).filter(r=>r.createdBy===currentUser.id)
     .map(r=>({...r,status:'approved'}));
-  const all = requests.concat(approved).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const offline = (_offlinePending||[]).filter(r=>r.createdBy===currentUser.id).map(r=>({...r,status:'offline'}));
+  const all = offline.concat(requests,approved).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
 
   el.innerHTML = all.length ? all.map(r => {
     const st = r.status || 'pending';
     const cls = st==='approved' ? 'machine-status-approved' : st==='rejected' ? 'machine-status-rejected' : 'machine-status-pending';
-    const label = st==='approved' ? '✅ Validée' : st==='rejected' ? '❌ Refusée' : '⏳ En attente';
+    const label = st==='approved' ? '✅ Validée' : st==='rejected' ? '❌ Refusée' : st==='offline' ? '📶 Attente réseau' : '⏳ En attente';
     return '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">' +
       '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center">' +
       '<div style="font-size:13px;font-weight:800">' + escapeHtml(r.systemName) + '</div>' +
@@ -2729,9 +2866,15 @@ function getVideoPlaybackUrl(url){
   return s;
 }
 
+function openMediaListFrom(el, scopeSel){
+  const scope = el.closest(scopeSel) || el.parentElement || document;
+  const items = Array.from(scope.querySelectorAll('[data-url]')).filter(x => x.dataset.url);
+  _currentGalleryPhotos = items.map(x => ({ url: x.dataset.url, label: x.dataset.caption || '', isVideo: x.dataset.video === 'true' }));
+  openLightboxGallery(Math.max(0, items.indexOf(el)));
+}
 function openAdminMachineMedia(el){
   if(!el) return;
-  openLightbox(el.dataset.url || '', el.dataset.caption || 'Photo', el.dataset.video === 'true');
+  openMediaListFrom(el, '.machine-request-card');
 }
 function renderAdminMachineMedia(media){
   return mediaArray(media).map(x=>{
@@ -5785,7 +5928,7 @@ function normalizeMachineMedia(m){
 }
 function openMachineMedia(el){
   if(!el) return;
-  openLightbox(el.dataset.url || '', el.dataset.caption || 'Photo', el.dataset.video === 'true');
+  openMediaListFrom(el, '#ficheContent');
 }
 
 function renderLibraryModel(m, rootName, subName){
@@ -5976,7 +6119,10 @@ function openLightboxGallery(idx) {
 function updateLightboxNav() {
   const total = _currentGalleryPhotos.length;
   const nav = document.getElementById('lightboxNav');
-  if (nav) {
+  const multi = total > 1;
+  ['lightboxPrev','lightboxNext'].forEach(id => { const b = document.getElementById(id); if (b) b.style.display = multi ? 'flex' : 'none'; });
+  if (nav) nav.style.display = multi ? '' : 'none';
+  if (nav && multi) {
     nav.textContent = `${_currentPhotoIdx + 1} / ${total}`;
     document.getElementById('lightboxPrev').style.opacity = _currentPhotoIdx > 0 ? '1' : '0.3';
     document.getElementById('lightboxNext').style.opacity = _currentPhotoIdx < total - 1 ? '1' : '0.3';
@@ -5986,6 +6132,12 @@ function updateLightboxNav() {
 function lightboxPrev() {
   if (_currentPhotoIdx > 0) { _currentPhotoIdx--; const p = _currentGalleryPhotos[_currentPhotoIdx]; openLightbox(p.url, p.label, p.isVideo); updateLightboxNav(); }
 }
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox')?.classList.contains('open')) return;
+  if (e.key === 'ArrowRight') lightboxNext();
+  else if (e.key === 'ArrowLeft') lightboxPrev();
+  else if (e.key === 'Escape') closeLightbox();
+});
 function lightboxNext() {
   if (_currentPhotoIdx < _currentGalleryPhotos.length - 1) { _currentPhotoIdx++; const p = _currentGalleryPhotos[_currentPhotoIdx]; openLightbox(p.url, p.label, p.isVideo); updateLightboxNav(); }
 }
@@ -6958,6 +7110,7 @@ function renderPhotoGrid(photos) {
 let currentLightboxUrl = '';
 function openLightbox(url, caption, videoFlag) {
   currentLightboxUrl = url;
+  ['lightboxPrev','lightboxNext','lightboxNav'].forEach(id => { const b = document.getElementById(id); if (b) b.style.display = 'none'; });
   const lb = document.getElementById('lightbox');
   const lbImg = document.getElementById('lightboxImg');
   const existVid = lb.querySelector('.lb-video');
