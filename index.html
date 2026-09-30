@@ -1888,7 +1888,7 @@ body.light-mode .dosage-select,body.light-mode .dosage-input{color:#111;backgrou
           <div style="font-size:14px;font-weight:700;color:var(--cyan);">Prendre une photo / Choisir une image</div>
           <div style="font-size:11px;color:var(--muted);margin-top:4px;">Fiche produit, notice, document technique...</div>
         </div>
-        <input type="file" id="photoLearnInput" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoLearn(this)">
+        <input type="file" id="photoLearnInput" accept="image/*" style="display:none;" onchange="handlePhotoLearn(this)">
 
         <!-- Preview de la photo -->
         <div id="photoLearnPreview" style="display:none;margin-bottom:10px;">
@@ -2543,8 +2543,8 @@ function showAddMachineModal(selectedFolder,selectedSubfolder,selectedSystem){
     '</div>'+
     '<div class="machine-form-section">'+
       '<div class="machine-form-step"><span class="machine-step-num">4</span> Photo du système de dosage</div>'+
-      '<div class="machine-file-zone" onclick="document.getElementById(\'machinePhotoInput\').click()"><div class="icon">📷</div><div class="title">Ajouter la photo principale</div><div class="sub">1 photo obligatoire</div></div>'+
-      '<input type="file" id="machinePhotoInput" accept="image/*" capture="environment" style="display:none" onchange="previewMachinePhoto(this)">'+
+      '<div class="machine-file-zone" onclick="document.getElementById(\'machinePhotoInput\').click()"><div class="icon">📷</div><div class="title">Ajouter la photo principale</div><div class="sub">Appareil photo ou galerie · 1 photo obligatoire</div></div>'+
+      '<input type="file" id="machinePhotoInput" accept="image/*" style="display:none" onchange="previewMachinePhoto(this)">'+
       '<div class="machine-preview" id="machinePhotoPreview"><img id="machinePhotoImg" alt=""></div>'+
     '</div>'+
     '<div class="machine-form-section">'+
