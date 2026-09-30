@@ -2462,8 +2462,10 @@ function previewMachinePhoto(input){
   wrap.style.display='block';
 }
 function previewBranchPhotos(input){
-  const files = Array.from(input.files || []);
-  if (!files.length) return;
+  const picked = Array.from(input.files || []);
+  const files = picked.filter(f => /^image\//i.test(f.type || ''));
+  if (files.length < picked.length) showToast('⚠️ Vidéos non acceptées — photos uniquement', true);
+  if (!files.length) { input.value = ''; return; }
 
   const existing = _machineDraft.branchFiles || [];
   const key = f => [f.name, f.size, f.lastModified, f.type].join('|');
@@ -2545,9 +2547,9 @@ function showAddMachineModal(selectedFolder,selectedSubfolder,selectedSystem){
       '<div class="machine-preview" id="machinePhotoPreview"><img id="machinePhotoImg" alt=""></div>'+
     '</div>'+
     '<div class="machine-form-section">'+
-      '<div class="machine-form-step"><span class="machine-step-num">5</span> Photos / vidéos des branchements</div>'+
-      '<div class="machine-file-zone" onclick="document.getElementById(\'branchMediaInput\').click()"><div class="icon">📸</div><div class="title">Ajouter les branchements</div><div class="sub">Photos et vidéos · plusieurs fichiers</div></div>'+
-      '<input type="file" id="branchMediaInput" accept="image/*,video/*" multiple style="display:none" onchange="previewBranchPhotos(this)">'+
+      '<div class="machine-form-step"><span class="machine-step-num">5</span> Photos des branchements</div>'+
+      '<div class="machine-file-zone" onclick="document.getElementById(\'branchMediaInput\').click()"><div class="icon">📸</div><div class="title">Ajouter les branchements</div><div class="sub">Photos uniquement · plusieurs fichiers</div></div>'+
+      '<input type="file" id="branchMediaInput" accept="image/*" multiple style="display:none" onchange="previewBranchPhotos(this)">'+
       '<div id="branchPhotoCount" class="machine-file-count"></div>'+
       '<div id="branchPhotoPreviewList" class="machine-request-photo-list"></div>'+
     '</div>'+
@@ -2558,8 +2560,10 @@ function showAddMachineModal(selectedFolder,selectedSubfolder,selectedSystem){
   renderMachineAddFolderOptions(selectedFolder,selectedSubfolder,selectedSystem);
 }
 function previewBranchPhotos(input){
-  const files = Array.from(input.files || []);
-  if (!files.length) return;
+  const picked = Array.from(input.files || []);
+  const files = picked.filter(f => /^image\//i.test(f.type || ''));
+  if (files.length < picked.length) showToast('⚠️ Vidéos non acceptées — photos uniquement', true);
+  if (!files.length) { input.value = ''; return; }
 
   const existing = _machineDraft.branchFiles || [];
   const key = f => [f.name, f.size, f.lastModified, f.type].join('|');
@@ -2631,13 +2635,13 @@ async function submitMachineRequest(){
   const systemName=document.getElementById('machineSystemName')?.value.trim();
   const model=document.getElementById('machineModel')?.value.trim();
   const machineFile=document.getElementById('machinePhotoInput')?.files?.[0];
-  const branchFiles=_machineDraft.branchFiles||[];
+  const branchFiles=(_machineDraft.branchFiles||[]).filter(f=>/^image\//i.test(f.type||''));
 
   if(!folderId){showToast('⚠️ Choisis le dossier',true);return;}
   if(!systemType){showToast('⚠️ Choisis le type de système',true);return;}
   if(!systemName){showToast('⚠️ Indique le nom du modèle / la marque',true);return;}
   if(!machineFile){showToast('⚠️ Ajoute la photo du système de dosage',true);return;}
-  if(!branchFiles.length){showToast('⚠️ Ajoute au moins une photo ou vidéo de branchement',true);return;}
+  if(!branchFiles.length){showToast('⚠️ Ajoute au moins une photo de branchement',true);return;}
 
   const btn=document.querySelector('.modal-btn-primary');
   if(btn){btn.disabled=true;btn.textContent='⏳ Envoi…';}
@@ -2811,7 +2815,7 @@ function renderMachineRequests(){
         '</div>'
       : (status==='rejected'
           ? '<div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div class="machine-mini-note" style="color:#FF6B75">Cette proposition a été refusée.</div><button type="button" class="machine-delete-rejected" onclick="deleteRejectedMachineRequest(\''+safeId+'\')">🗑 Supprimer</button></div>'
-          : '<div class="machine-mini-note" style="margin-top:10px;color:#2ED573">Ce fichier est publié dans Fichiers.</div>');
+          : '<div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div class="machine-mini-note" style="color:#2ED573">Ce fichier est publié dans Fichiers.</div><button type="button" class="machine-delete-rejected" style="border-color:rgba(59,206,172,.35);background:rgba(59,206,172,.10);color:var(--cyan)" onclick="adminAddVideoToMachine(\''+safeId+'\')">🎬 Ajouter une vidéo</button></div>');
 
     const mainPhoto = mainUrl
       ? '<div class="machine-request-photo-wrap" data-url="'+escapeHtml(mainUrl)+'" data-caption="'+escapeHtml(r.systemName||'Photo du système')+'" onclick="openAdminMachineMedia(this)"><img class="machine-request-photo" src="'+escapeHtml(mainUrl)+'" alt="" loading="lazy"><span>🔍</span></div>'
@@ -2834,6 +2838,32 @@ function renderMachineRequests(){
       actions+
       '</div>';
   }).join('');
+}
+
+function adminAddVideoToMachine(id){
+  if(!currentUser?.isAdmin){showToast('⚠️ Réservé à l’administrateur',true);return;}
+  const input=document.createElement('input');
+  input.type='file'; input.accept='video/*'; input.multiple=true;
+  input.onchange=async()=>{
+    const files=Array.from(input.files||[]).filter(f=>/^video\//i.test(f.type||''));
+    if(!files.length){showToast('⚠️ Choisis une vidéo',true);return;}
+    showToast('⏳ Envoi de '+files.length+' vidéo'+(files.length>1?'s':'')+'…');
+    try{
+      const machines=await fbLoadApprovedMachines();
+      const m=machines[id];
+      if(!m){showToast('⚠️ Système introuvable',true);return;}
+      const media=mediaArray(m.branchMedia||m.branchPhotos).slice();
+      for(const f of files) media.push(await uploadMachineMedia(f,'vitalya/machines/media'));
+      m.branchMedia=media;
+      await fbSaveApprovedMachines(machines);
+      renderMachineRequests(); buildFichesList();
+      showToast('✅ Vidéo ajoutée au système');
+    }catch(e){
+      console.error('Ajout vidéo admin',e);
+      showToast('❌ Échec de l’envoi de la vidéo',true);
+    }
+  };
+  input.click();
 }
 
 async function approveMachineRequest(id){
@@ -5776,6 +5806,12 @@ function renderLibraryModel(m, rootName, subName){
     '</div>'+
     '<div class="fiches-machine-arrow">›</div>'+
   '</div>';
+}
+function toggleLibraryFolder(id){
+  const body=document.getElementById(id);
+  if(!body) return;
+  const open=body.classList.toggle('open');
+  document.getElementById(id+'-chev')?.classList.toggle('open',open);
 }
 function buildFichesList(){
   const mount=document.getElementById('machineLibraryHome');if(!mount)return;
